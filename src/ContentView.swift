@@ -87,6 +87,7 @@ class MonitorViewModel: ObservableObject {
         
         // Poll every 0.1 seconds for ultra-fast charts (10 FPS)
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in self?.updateStats() }
+        updateStats() // Fetch immediately to avoid empty arrays on startup
     }
 
     deinit {
@@ -133,33 +134,31 @@ class MonitorViewModel: ObservableObject {
             status = "Working hard right now."
         }
         
-        // Use linear animation matching the 0.1s polling interval for charts
-        withAnimation(.linear(duration: 0.1)) {
-            self.cpuCoreUsages = cores
-            self.overallCpu = avgCpu
-            self.memoryInfo = mem
-            self.gpuUtilization = gpu
-            
-            self.cpuHistory.removeFirst(); self.cpuHistory.append(ChartDataPoint(time: now, value: avgCpu))
-            self.memHistory.removeFirst(); self.memHistory.append(ChartDataPoint(time: now, value: memPress))
-            self.gpuHistory.removeFirst(); self.gpuHistory.append(ChartDataPoint(time: now, value: gpu))
-            self.netDownloadHistory.removeFirst(); self.netDownloadHistory.append(ChartDataPoint(time: now, value: inRate))
-            self.diskReadHistory.removeFirst(); self.diskReadHistory.append(ChartDataPoint(time: now, value: readRate))
-            
-            if shouldUpdateText {
-                self.displayCpuCoreUsages = cores
-                self.displayCpu = avgCpu
-                self.displayGpu = gpu
-                self.displayMemPressure = memPress
-                self.displayNetInRate = inRate
-                self.displayNetOutRate = outRate
-                self.displayDiskReadRate = readRate
-                self.displayDiskWriteRate = writeRate
-                self.displayThermalState = thermal
-                if let space = diskInfo { self.diskSpace = space }
-                self.uptimeString = "\(days)d \(hours)h \(mins)m"
-                self.systemStatusText = status
-            }
+        // Update states directly without high-CPU withAnimation block
+        self.cpuCoreUsages = cores
+        self.overallCpu = avgCpu
+        self.memoryInfo = mem
+        self.gpuUtilization = gpu
+        
+        self.cpuHistory.removeFirst(); self.cpuHistory.append(ChartDataPoint(time: now, value: avgCpu))
+        self.memHistory.removeFirst(); self.memHistory.append(ChartDataPoint(time: now, value: memPress))
+        self.gpuHistory.removeFirst(); self.gpuHistory.append(ChartDataPoint(time: now, value: gpu))
+        self.netDownloadHistory.removeFirst(); self.netDownloadHistory.append(ChartDataPoint(time: now, value: inRate))
+        self.diskReadHistory.removeFirst(); self.diskReadHistory.append(ChartDataPoint(time: now, value: readRate))
+        
+        if shouldUpdateText {
+            self.displayCpuCoreUsages = cores
+            self.displayCpu = avgCpu
+            self.displayGpu = gpu
+            self.displayMemPressure = memPress
+            self.displayNetInRate = inRate
+            self.displayNetOutRate = outRate
+            self.displayDiskReadRate = readRate
+            self.displayDiskWriteRate = writeRate
+            self.displayThermalState = thermal
+            if let space = diskInfo { self.diskSpace = space }
+            self.uptimeString = "\(days)d \(hours)h \(mins)m"
+            self.systemStatusText = status
         }
     }
 }
@@ -455,8 +454,8 @@ public struct ContentView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Processor Cores Activity").font(.system(.subheadline, design: .rounded)).bold().foregroundColor(.secondary)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 120))], spacing: 12) {
-                    ForEach(0..<vm.cpuCoreUsages.count, id: \.self) { idx in
-                        let usage = vm.cpuCoreUsages[idx]
+                    ForEach(0..<vm.displayCpuCoreUsages.count, id: \.self) { idx in
+                        let usage = vm.displayCpuCoreUsages[idx]
                         VStack(alignment: .leading, spacing: 6) { Text("Core \(idx)").font(.caption).foregroundColor(.secondary); Text(String(format: "%.1f%%", usage)).font(.system(.title3, design: .rounded)).bold().foregroundColor(Theme.statusColor(pressure: usage)); GeometryReader { geometry in ZStack(alignment: .leading) { RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.1)); RoundedRectangle(cornerRadius: 3).fill(Theme.statusColor(pressure: usage)).frame(width: geometry.size.width * CGFloat(usage / 100.0)) } }.frame(height: 6) }.padding(10).background(RoundedRectangle(cornerRadius: 10).fill(Theme.statusColor(pressure: usage).opacity(0.04 + (usage / 100.0) * 0.12))).overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.06), lineWidth: 1))
                     }
                 }
