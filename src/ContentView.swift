@@ -222,6 +222,7 @@ public struct ContentView: View {
     @EnvironmentObject var vm: MonitorViewModel
     @State private var selectedTab: String? = "Dashboard"
     @AppStorage("showMiniHUD") private var showMiniHUD: Bool = false
+    @Environment(\.openWindow) private var openWindow
 
     public init() {}
 
@@ -269,6 +270,14 @@ public struct ContentView: View {
         }
         .frame(minWidth: 900, minHeight: 650)
         .background(WindowAccessor { window in window.titleVisibility = .hidden; window.titlebarAppearsTransparent = true; window.styleMask.insert(.fullSizeContentView); window.isMovableByWindowBackground = true })
+        .onAppear {
+            if showMiniHUD {
+                openWindow(id: "hud")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    NSApp.windows.first { $0.level == .floating && $0.styleMask.contains(.borderless) }?.makeKeyAndOrderFront(nil)
+                }
+            }
+        }
     }
 
     // MARK: - Dashboard View
@@ -304,6 +313,18 @@ public struct ContentView: View {
                 // Mini HUD Toggle
                 Button(action: {
                     showMiniHUD.toggle()
+                    if showMiniHUD {
+                        openWindow(id: "hud")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            NSApp.windows.first { $0.level == .floating && $0.styleMask.contains(.borderless) }?.makeKeyAndOrderFront(nil)
+                        }
+                    } else {
+                        NSApp.windows.forEach { window in
+                            if window.level == .floating && window.styleMask.contains(.borderless) {
+                                window.close()
+                            }
+                        }
+                    }
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: showMiniHUD ? "macwindow.badge.minus" : "macwindow.badge.plus")
