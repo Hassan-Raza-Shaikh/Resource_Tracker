@@ -163,113 +163,7 @@ class MonitorViewModel: ObservableObject {
     }
 }
 
-// MARK: - Dashboard View
-struct DashboardView: View {
-    @EnvironmentObject var vm: MonitorViewModel
-    @AppStorage("showMiniHUD") private var showMiniHUD: Bool = false
-
-    var body: some View {
-        VStack(spacing: 20) {
-            // Friendly Status Banner
-            HStack {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(vm.systemStatusText)
-                        .font(.title2)
-                        .bold()
-                        .foregroundColor(vm.displayCpu > 80.0 || vm.displayMemPressure > 80.0 ? Theme.terracotta : .primary)
-                    HStack {
-                        Text("System Uptime: \(vm.uptimeString)")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                    }
-                }
-                
-                Spacer()
-                
-                // Mini HUD Toggle
-                Button(action: {
-                    showMiniHUD.toggle()
-                }) {
-                    VStack(spacing: 4) {
-                        Image(systemName: showMiniHUD ? "macwindow.badge.minus" : "macwindow.badge.plus")
-                            .font(.system(size: 20))
-                        Text(showMiniHUD ? "Hide Mini HUD" : "Show Mini HUD")
-                            .font(.caption)
-                            .bold()
-                    }
-                    .padding(10)
-                    .background(showMiniHUD ? Theme.amethyst.opacity(0.2) : Color.white.opacity(0.05))
-                    .foregroundColor(showMiniHUD ? Theme.amethyst : .primary)
-                    .cornerRadius(10)
-                }
-                .buttonStyle(.plain)
-            }
-            .glassCardStyle()
-            
-            // Explicit Hardware State Row
-            HStack(spacing: 20) {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Thermal State")
-                        .font(.headline)
-                    HStack {
-                        Image(systemName: "thermometer.sun.fill")
-                            .foregroundColor(thermalColor(state: vm.displayThermalState))
-                        Text(thermalString(state: vm.displayThermalState))
-                            .font(.system(.title2, design: .rounded))
-                            .bold()
-                            .foregroundColor(thermalColor(state: vm.displayThermalState))
-                    }
-                }
-                .glassCardStyle()
-                
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Total App Count")
-                        .font(.headline)
-                    HStack {
-                        Image(systemName: "app.badge.fill")
-                            .foregroundColor(.secondary)
-                        Text("\(vm.processMonitor.topProcesses.count) tracked")
-                            .font(.system(.title2, design: .rounded))
-                            .bold()
-                    }
-                }
-                .glassCardStyle()
-            }
-            
-            // At-A-Glance Stats
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
-                StatCard(title: "CPU", value: String(format: "%.1f%%", vm.displayCpu), color: Theme.statusColor(pressure: vm.displayCpu))
-                StatCard(title: "Memory", value: String(format: "%.1f%%", vm.displayMemPressure), color: Theme.statusColor(pressure: vm.displayMemPressure))
-                StatCard(title: "GPU", value: String(format: "%.1f%%", vm.displayGpu), color: Theme.amethyst)
-            }
-            
-            SmoothLiveChart(data: vm.cpuHistory, color: Theme.ocean)
-                .frame(height: 200)
-                .glassCardStyle()
-        }
-    }
-    
-    private func thermalColor(state: Foundation.ProcessInfo.ThermalState) -> Color {
-        switch state {
-        case .nominal: return Theme.sage
-        case .fair: return Theme.amber
-        case .serious: return .orange
-        case .critical: return Theme.terracotta
-        @unknown default: return .primary
-        }
-    }
-    
-    private func thermalString(state: Foundation.ProcessInfo.ThermalState) -> String {
-        switch state {
-        case .nominal: return "Nominal (Cool)"
-        case .fair: return "Fair (Warm)"
-        case .serious: return "Serious (Hot)"
-        case .critical: return "Critical (Overheating)"
-        @unknown default: return "Unknown"
-        }
-    }
-}
+// (Removed Duplicate DashboardView struct)
 
 // (Removed CoreStatsView)
 
@@ -304,7 +198,11 @@ struct SmoothLiveChart: View {
         Chart(data) { point in
             LineMark(x: .value("Time", point.time), y: .value("Value", point.value)).interpolationMethod(.catmullRom).foregroundStyle(color).lineStyle(StrokeStyle(lineWidth: 2))
             AreaMark(x: .value("Time", point.time), y: .value("Value", point.value)).interpolationMethod(.catmullRom).foregroundStyle(LinearGradient(gradient: Gradient(colors: [color.opacity(0.3), color.opacity(0.0)]), startPoint: .top, endPoint: .bottom))
-        }.chartXAxis(.hidden).chartYAxis(.hidden).chartYScale(domain: 0...limit)
+        }
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .chartYScale(domain: 0...limit)
+        .animation(.linear(duration: 0.1), value: data.map { $0.value })
     }
 }
 
@@ -323,6 +221,7 @@ struct NSImageViewRepresentable: NSViewRepresentable {
 public struct ContentView: View {
     @EnvironmentObject var vm: MonitorViewModel
     @State private var selectedTab: String? = "Dashboard"
+    @AppStorage("showMiniHUD") private var showMiniHUD: Bool = false
 
     public init() {}
 
@@ -375,14 +274,52 @@ public struct ContentView: View {
     // MARK: - Dashboard View
     private var dashboardView: some View {
         VStack(spacing: 20) {
-            // Status Bar
+            // Status Bar with Thermal State and HUD controls integrated
             HStack {
-                VStack(alignment: .leading) {
-                    Text(vm.systemStatusText).font(.headline).foregroundColor(Theme.statusColor(pressure: vm.displayMemPressure))
-                    Text("System Uptime: \(vm.uptimeString)").font(.subheadline).foregroundColor(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(vm.systemStatusText)
+                        .font(.headline)
+                        .foregroundColor(Theme.statusColor(pressure: vm.displayMemPressure))
+                    Text("System Uptime: \(vm.uptimeString)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
+                
                 Spacer()
-            }.glassCardStyle()
+                
+                // Hardware State Indicator (Temperature indicator)
+                HStack(spacing: 6) {
+                    Image(systemName: "thermometer.sun.fill")
+                        .foregroundColor(thermalColor(state: vm.displayThermalState))
+                    Text(thermalString(state: vm.displayThermalState))
+                        .font(.subheadline)
+                        .bold()
+                        .foregroundColor(thermalColor(state: vm.displayThermalState))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.05))
+                .cornerRadius(8)
+                
+                // Mini HUD Toggle
+                Button(action: {
+                    showMiniHUD.toggle()
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: showMiniHUD ? "macwindow.badge.minus" : "macwindow.badge.plus")
+                        Text(showMiniHUD ? "Hide HUD" : "Show HUD")
+                    }
+                    .font(.subheadline)
+                    .bold()
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(showMiniHUD ? Theme.amethyst.opacity(0.2) : Color.white.opacity(0.05))
+                    .foregroundColor(showMiniHUD ? Theme.amethyst : .primary)
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+            }
+            .glassCardStyle()
             
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
                 VStack(alignment: .leading, spacing: 10) { HStack { Image(systemName: "cpu").font(.title2).foregroundColor(Theme.statusColor(pressure: vm.displayCpu)); Text("CPU LOAD").font(.system(.subheadline, design: .rounded)).bold().foregroundColor(.secondary); Spacer(); Text(String(format: "%.1f%%", vm.displayCpu)).font(.system(.title3, design: .rounded)).bold().foregroundColor(Theme.statusColor(pressure: vm.displayCpu)) }; SmoothLiveChart(data: vm.cpuHistory, color: Theme.statusColor(pressure: vm.overallCpu), maxVal: 100.0).frame(height: 60) }.glassCardStyle()
@@ -456,7 +393,7 @@ public struct ContentView: View {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 120))], spacing: 12) {
                     ForEach(0..<vm.displayCpuCoreUsages.count, id: \.self) { idx in
                         let usage = vm.displayCpuCoreUsages[idx]
-                        VStack(alignment: .leading, spacing: 6) { Text("Core \(idx)").font(.caption).foregroundColor(.secondary); Text(String(format: "%.1f%%", usage)).font(.system(.title3, design: .rounded)).bold().foregroundColor(Theme.statusColor(pressure: usage)); GeometryReader { geometry in ZStack(alignment: .leading) { RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.1)); RoundedRectangle(cornerRadius: 3).fill(Theme.statusColor(pressure: usage)).frame(width: geometry.size.width * CGFloat(usage / 100.0)) } }.frame(height: 6) }.padding(10).background(RoundedRectangle(cornerRadius: 10).fill(Theme.statusColor(pressure: usage).opacity(0.04 + (usage / 100.0) * 0.12))).overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.06), lineWidth: 1))
+                        VStack(alignment: .leading, spacing: 6) { Text("Core \(idx)").font(.caption).foregroundColor(.secondary); Text(String(format: "%.1f%%", usage)).font(.system(.title3, design: .rounded)).bold().foregroundColor(Theme.statusColor(pressure: usage)); GeometryReader { geometry in ZStack(alignment: .leading) { RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.1)); RoundedRectangle(cornerRadius: 3).fill(Theme.statusColor(pressure: usage)).frame(width: geometry.size.width * CGFloat(usage / 100.0)).animation(.linear(duration: 0.8), value: usage) } }.frame(height: 6) }.padding(10).background(RoundedRectangle(cornerRadius: 10).fill(Theme.statusColor(pressure: usage).opacity(0.04 + (usage / 100.0) * 0.12))).overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.06), lineWidth: 1))
                     }
                 }
             }.glassCardStyle()
@@ -477,4 +414,24 @@ public struct ContentView: View {
     private var networkDetailsView: some View { VStack(spacing: 20) { VStack(alignment: .leading, spacing: 12) { Text("Network Activity (Download/Upload)").font(.system(.subheadline, design: .rounded)).bold().foregroundColor(.secondary); HStack(spacing: 20) { VStack(alignment: .leading) { Text("Download Speed").font(.caption).foregroundColor(.secondary); Text(formatBytes(vm.displayNetInRate) + "/s").font(.title3).bold().foregroundColor(Theme.ocean) }; VStack(alignment: .leading) { Text("Upload Speed").font(.caption).foregroundColor(.secondary); Text(formatBytes(vm.displayNetOutRate) + "/s").font(.title3).bold().foregroundColor(.secondary) } }; SmoothLiveChart(data: vm.netDownloadHistory, color: Theme.ocean).frame(height: 120) }.glassCardStyle() } }
 
     private func formatBytes(_ bytes: Double) -> String { let kb = 1024.0; let mb = kb * 1024.0; let gb = mb * 1024.0; if bytes >= gb { return String(format: "%.2f GB", bytes / gb) } else if bytes >= mb { return String(format: "%.2f MB", bytes / mb) } else if bytes >= kb { return String(format: "%.1f KB", bytes / kb) } else { return "\(Int(bytes)) B" } }
+    
+    private func thermalColor(state: Foundation.ProcessInfo.ThermalState) -> Color {
+        switch state {
+        case .nominal: return Theme.sage
+        case .fair: return Theme.amber
+        case .serious: return .orange
+        case .critical: return Theme.terracotta
+        @unknown default: return .primary
+        }
+    }
+    
+    private func thermalString(state: Foundation.ProcessInfo.ThermalState) -> String {
+        switch state {
+        case .nominal: return "Nominal (Cool)"
+        case .fair: return "Fair (Warm)"
+        case .serious: return "Serious (Hot)"
+        case .critical: return "Critical (Overheating)"
+        @unknown default: return "Unknown"
+        }
+    }
 }
