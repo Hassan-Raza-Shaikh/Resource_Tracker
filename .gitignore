@@ -1,0 +1,35 @@
+# OS X
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon folders
+Icon\r
+
+# Thumbnails
+._*
+
+# Files that might be created on an external volume
+.Spotlight-V100
+.Trashes
+
+# Directories
+build/
+DerivedData/
+.DerivedData/
+
+# Xcode
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xsyncdb
+.shadow/
+.swiftpm/
+
+# App packaging
+*.app
+*.dSYM
+*.ipa
+*.pkg
