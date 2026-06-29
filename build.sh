@@ -5,11 +5,11 @@ echo "=== Building Resource Tracker App ==="
 
 # 1. Setup build directories
 echo "Creating build directory structure..."
-mkdir -p build/ResourceTracker.app/Contents/MacOS
-mkdir -p build/ResourceTracker.app/Contents/Resources
+mkdir -p build/"Resource Tracker.app"/Contents/MacOS
+mkdir -p build/"Resource Tracker.app"/Contents/Resources
 
 # 2. Check and copy icon source
-ICON_SOURCE="/Users/hassan/.gemini/antigravity/brain/2ea441ab-d501-4b99-a366-9d8af455094c/app_icon_base_1782741168048.jpg"
+ICON_SOURCE="/Users/hassan/.gemini/antigravity/brain/2ea441ab-d501-4b99-a366-9d8af455094c/resource_tracker_icon_1782742120120.jpg"
 if [ -f "$ICON_SOURCE" ]; then
     echo "Copying app icon base image..."
     cp "$ICON_SOURCE" build/app_icon_base.jpg
@@ -36,7 +36,7 @@ if [ -f "build/app_icon_base.jpg" ]; then
 
     
     echo "Compiling .icns file..."
-    iconutil -c icns build/AppIcon.iconset -o build/ResourceTracker.app/Contents/Resources/AppIcon.icns
+    iconutil -c icns build/AppIcon.iconset -o build/"Resource Tracker.app"/Contents/Resources/AppIcon.icns
     
     # Cleanup temp iconset files
     rm -rf build/AppIcon.iconset
@@ -44,20 +44,22 @@ fi
 
 # 4. Copy Info.plist config
 echo "Copying Info.plist..."
-cp Info.plist build/ResourceTracker.app/Contents/Info.plist
+cp Info.plist build/"Resource Tracker.app"/Contents/Info.plist
 
 # 5. Compile Swift application
 echo "Compiling Swift source files..."
 SDK_PATH=$(xcrun --show-sdk-path)
 swiftc -sdk "$SDK_PATH" -target arm64-apple-macos14.0 -O \
-    -o build/ResourceTracker.app/Contents/MacOS/ResourceTracker \
+    -o build/"Resource Tracker.app"/Contents/MacOS/ResourceTracker \
     src/CPUMonitor.swift \
     src/MemoryMonitor.swift \
     src/NetworkMonitor.swift \
     src/DiskMonitor.swift \
+    src/GPUMonitor.swift \
+    src/ProcessMonitor.swift \
     src/VisualEffectView.swift \
     src/ContentView.swift \
     src/ResourceTrackerApp.swift
 
 echo "=== Build Completed Successfully ==="
-echo "You can run the application using: open build/ResourceTracker.app"
+echo "You can run the application using: open build/\"Resource Tracker.app\""

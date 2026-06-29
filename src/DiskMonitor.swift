@@ -9,7 +9,16 @@ public class DiskMonitor {
     
     public init() {}
     
+    private var cachedRates: (Double, Double) = (0.0, 0.0)
+    
     public func getDiskRates() -> (readBytesPerSec: Double, writeBytesPerSec: Double) {
+        let now = Date()
+        let timeInterval = now.timeIntervalSince(lastCheckTime)
+        
+        if timeInterval < 1.0 && prevReadBytes != 0 {
+            return cachedRates
+        }
+        
         var readBytes: UInt64 = 0
         var writeBytes: UInt64 = 0
         
@@ -49,8 +58,6 @@ public class DiskMonitor {
             IOObjectRelease(iterator)
         }
         
-        let now = Date()
-        let timeInterval = now.timeIntervalSince(lastCheckTime)
         lastCheckTime = now
         
         if prevReadBytes == 0 && prevWriteBytes == 0 {
@@ -66,7 +73,8 @@ public class DiskMonitor {
         prevWriteBytes = writeBytes
         
         guard timeInterval > 0 else { return (0, 0) }
-        return (Double(diffRead) / timeInterval, Double(diffWrite) / timeInterval)
+        cachedRates = (Double(diffRead) / timeInterval, Double(diffWrite) / timeInterval)
+        return cachedRates
     }
     
     public func getDiskSpaceInfo() -> (totalGB: Double, freeGB: Double, usedGB: Double)? {

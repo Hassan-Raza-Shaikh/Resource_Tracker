@@ -11,6 +11,8 @@ public class MemoryMonitor {
         public let pressurePercentage: Double
     }
     
+    private var cachedInfo: MemoryInfo? = nil
+    
     public init() {}
     
     public func getMemoryInfo() -> MemoryInfo? {
@@ -23,7 +25,9 @@ public class MemoryMonitor {
             }
         }
         
-        guard result == KERN_SUCCESS else { return nil }
+        guard result == KERN_SUCCESS else { 
+            return cachedInfo 
+        }
         
         var totalBytes: UInt64 = 0
         var size = MemoryLayout<UInt64>.size
@@ -42,7 +46,7 @@ public class MemoryMonitor {
         let pressure = (used / total) * 100.0
         
         let gb = 1024.0 * 1024.0 * 1024.0
-        return MemoryInfo(
+        let newInfo = MemoryInfo(
             totalGB: total / gb,
             activeGB: active / gb,
             wiredGB: wired / gb,
@@ -51,5 +55,7 @@ public class MemoryMonitor {
             usedGB: used / gb,
             pressurePercentage: pressure
         )
+        cachedInfo = newInfo
+        return newInfo
     }
 }

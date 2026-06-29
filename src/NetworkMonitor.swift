@@ -8,7 +8,18 @@ public class NetworkMonitor {
     
     public init() {}
     
+    private var cachedRates: (Double, Double) = (0.0, 0.0)
+    
     public func getNetworkRates() -> (bytesInPerSec: Double, bytesOutPerSec: Double) {
+        let now = Date()
+        let timeInterval = now.timeIntervalSince(lastCheckTime)
+        
+        // OS networking stats generally don't update sub-second.
+        // Return cached rates for high-frequency chart polling to keep graphs smooth.
+        if timeInterval < 1.0 && prevBytesIn != 0 {
+            return cachedRates
+        }
+        
         var interfaceAddresses: UnsafeMutablePointer<ifaddrs>? = nil
         guard getifaddrs(&interfaceAddresses) == 0, let firstAddress = interfaceAddresses else {
             return (0, 0)
@@ -33,8 +44,6 @@ public class NetworkMonitor {
         }
         freeifaddrs(interfaceAddresses)
         
-        let now = Date()
-        let timeInterval = now.timeIntervalSince(lastCheckTime)
         lastCheckTime = now
         
         if prevBytesIn == 0 && prevBytesOut == 0 {
@@ -50,6 +59,7 @@ public class NetworkMonitor {
         prevBytesOut = totalBytesOut
         
         guard timeInterval > 0 else { return (0, 0) }
-        return (Double(diffIn) / timeInterval, Double(diffOut) / timeInterval)
+        cachedRates = (Double(diffIn) / timeInterval, Double(diffOut) / timeInterval)
+        return cachedRates
     }
 }
