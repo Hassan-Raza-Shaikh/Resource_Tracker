@@ -18,16 +18,15 @@ struct Theme {
 }
 
 // MARK: - Glass Style Modifier
-struct GlassCard: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .padding(14)
-            .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.04)))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(LinearGradient(gradient: Gradient(colors: [Color.white.opacity(0.18), Color.white.opacity(0.02), Color.black.opacity(0.18), Color.white.opacity(0.06)]), startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
-            .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+extension View {
+    func glassCardStyle() -> some View {
+        GlassEffectContainer {
+            self
+                .padding(14)
+        }
+        .glassEffect()
     }
 }
-extension View { func glassCardStyle() -> some View { self.modifier(GlassCard()) } }
 
 // MARK: - Data Models
 struct ChartDataPoint: Identifiable {
@@ -202,7 +201,7 @@ struct SmoothLiveChart: View {
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
         .chartYScale(domain: 0...limit)
-        .animation(.linear(duration: 0.1), value: data.map { $0.value })
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: data.map { $0.value })
     }
 }
 
@@ -414,7 +413,7 @@ public struct ContentView: View {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 120))], spacing: 12) {
                     ForEach(0..<vm.displayCpuCoreUsages.count, id: \.self) { idx in
                         let usage = vm.displayCpuCoreUsages[idx]
-                        VStack(alignment: .leading, spacing: 6) { Text("Core \(idx)").font(.caption).foregroundColor(.secondary); Text(String(format: "%.1f%%", usage)).font(.system(.title3, design: .rounded)).bold().foregroundColor(Theme.statusColor(pressure: usage)); GeometryReader { geometry in ZStack(alignment: .leading) { RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.1)); RoundedRectangle(cornerRadius: 3).fill(Theme.statusColor(pressure: usage)).frame(width: geometry.size.width * CGFloat(usage / 100.0)).animation(.linear(duration: 0.8), value: usage) } }.frame(height: 6) }.padding(10).background(RoundedRectangle(cornerRadius: 10).fill(Theme.statusColor(pressure: usage).opacity(0.04 + (usage / 100.0) * 0.12))).overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.06), lineWidth: 1))
+                        VStack(alignment: .leading, spacing: 6) { Text("Core \(idx)").font(.caption).foregroundColor(.secondary); Text(String(format: "%.1f%%", usage)).font(.system(.title3, design: .rounded)).bold().foregroundColor(Theme.statusColor(pressure: usage)); GeometryReader { geometry in ZStack(alignment: .leading) { RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.1)); RoundedRectangle(cornerRadius: 3).fill(Theme.statusColor(pressure: usage)).frame(width: geometry.size.width * CGFloat(usage / 100.0)).animation(.spring(response: 0.6, dampingFraction: 0.7), value: usage) } }.frame(height: 6) }.padding(10).background(RoundedRectangle(cornerRadius: 10).fill(Theme.statusColor(pressure: usage).opacity(0.04 + (usage / 100.0) * 0.12))).overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.06), lineWidth: 1))
                     }
                 }
             }.glassCardStyle()

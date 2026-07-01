@@ -5,77 +5,80 @@ struct MenuWidgetView: View {
     @EnvironmentObject var vm: MonitorViewModel
     
     var body: some View {
-        VStack(spacing: 16) {
-            // Header
-            HStack {
-                Image(systemName: "cpu")
-                    .foregroundColor(.accentColor)
-                Text("Resource Tracker")
-                    .font(.headline)
-                Spacer()
-                Button(action: {
-                    NSApp.activate(ignoringOtherApps: true)
-                    for window in NSApplication.shared.windows {
-                        window.makeKeyAndOrderFront(nil)
+        GlassEffectContainer {
+            VStack(spacing: 16) {
+                // Header
+                HStack {
+                    Image(systemName: "cpu")
+                        .foregroundColor(.accentColor)
+                    Text("Resource Tracker")
+                        .font(.headline)
+                    Spacer()
+                    Button(action: {
+                        NSApp.activate(ignoringOtherApps: true)
+                        for window in NSApplication.shared.windows {
+                            window.makeKeyAndOrderFront(nil)
+                        }
+                    }) {
+                        Image(systemName: "arrow.up.right.square")
                     }
-                }) {
-                    Image(systemName: "arrow.up.right.square")
-                }
-                .buttonStyle(.plain)
-                .help("Open Full Dashboard")
-            }
-            
-            Divider()
-            
-            // Mini Stats
-            HStack(spacing: 20) {
-                VStack(alignment: .leading) {
-                    Text("CPU").font(.caption).foregroundColor(.secondary)
-                    Text(String(format: "%.1f%%", vm.displayCpu))
-                        .font(.system(.body, design: .rounded))
-                        .bold()
-                        .foregroundColor(Theme.statusColor(pressure: vm.displayCpu))
+                    .buttonStyle(.plain)
+                    .help("Open Full Dashboard")
                 }
                 
-                VStack(alignment: .leading) {
-                    Text("Memory").font(.caption).foregroundColor(.secondary)
-                    Text(String(format: "%.1f%%", vm.displayMemPressure))
-                        .font(.system(.body, design: .rounded))
-                        .bold()
-                        .foregroundColor(Theme.statusColor(pressure: vm.displayMemPressure))
-                }
+                Divider()
                 
-                VStack(alignment: .leading) {
-                    Text("GPU").font(.caption).foregroundColor(.secondary)
-                    Text(String(format: "%.1f%%", vm.displayGpu))
-                        .font(.system(.body, design: .rounded))
-                        .bold()
-                        .foregroundColor(Theme.amethyst)
-                }
-            }
-            
-            Divider()
-            
-            HStack {
-                Button("Settings") {
-                    if #available(macOS 14.0, *) {
-                        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                // Mini Stats
+                HStack(spacing: 20) {
+                    VStack(alignment: .leading) {
+                        Text("CPU").font(.caption).foregroundColor(.secondary)
+                        Text(String(format: "%.1f%%", vm.displayCpu))
+                            .font(.system(.body, design: .rounded))
+                            .bold()
+                            .foregroundColor(Theme.statusColor(pressure: vm.displayCpu))
+                    }
+                    
+                    VStack(alignment: .leading) {
+                        Text("Memory").font(.caption).foregroundColor(.secondary)
+                        Text(String(format: "%.1f%%", vm.displayMemPressure))
+                            .font(.system(.body, design: .rounded))
+                            .bold()
+                            .foregroundColor(Theme.statusColor(pressure: vm.displayMemPressure))
+                    }
+                    
+                    VStack(alignment: .leading) {
+                        Text("GPU").font(.caption).foregroundColor(.secondary)
+                        Text(String(format: "%.1f%%", vm.displayGpu))
+                            .font(.system(.body, design: .rounded))
+                            .bold()
+                            .foregroundColor(Theme.amethyst)
                     }
                 }
-                .buttonStyle(.plain)
-                .font(.caption)
                 
-                Spacer()
+                Divider()
                 
-                Button("Quit") {
-                    NSApplication.shared.terminate(nil)
+                HStack {
+                    Button("Settings") {
+                        if #available(macOS 14.0, *) {
+                            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .font(.caption)
+                    
+                    Spacer()
+                    
+                    Button("Quit") {
+                        NSApplication.shared.terminate(nil)
+                    }
+                    .buttonStyle(.plain)
+                    .font(.caption)
+                    .foregroundColor(.red)
                 }
-                .buttonStyle(.plain)
-                .font(.caption)
-                .foregroundColor(.red)
             }
+            .padding(16)
         }
-        .padding(16)
+        .glassEffect()
         .frame(width: 250)
     }
 }
@@ -85,21 +88,21 @@ struct MiniHUDView: View {
     @EnvironmentObject var vm: MonitorViewModel
     
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("CPU").font(.system(size: 9)).foregroundColor(.secondary)
-                Text(String(format: "%.0f%%", vm.displayCpu)).font(.system(size: 12, design: .rounded)).bold().foregroundColor(Theme.statusColor(pressure: vm.displayCpu))
+        GlassEffectContainer {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("CPU").font(.system(size: 9)).foregroundColor(.secondary)
+                    Text(String(format: "%.0f%%", vm.displayCpu)).font(.system(size: 12, design: .rounded)).bold().foregroundColor(Theme.statusColor(pressure: vm.displayCpu))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("MEM").font(.system(size: 9)).foregroundColor(.secondary)
+                    Text(String(format: "%.0f%%", vm.displayMemPressure)).font(.system(size: 12, design: .rounded)).bold().foregroundColor(Theme.statusColor(pressure: vm.displayMemPressure))
+                }
             }
-            VStack(alignment: .leading, spacing: 2) {
-                Text("MEM").font(.system(size: 9)).foregroundColor(.secondary)
-                Text(String(format: "%.0f%%", vm.displayMemPressure)).font(.system(size: 12, design: .rounded)).bold().foregroundColor(Theme.statusColor(pressure: vm.displayMemPressure))
-            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow).ignoresSafeArea())
-        .cornerRadius(12)
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.1), lineWidth: 1))
+        .glassEffect()
         .frame(width: 120, height: 40)
         // Make it float and draggable
         .background(WindowAccessor { window in
