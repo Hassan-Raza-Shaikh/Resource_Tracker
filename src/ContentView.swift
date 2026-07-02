@@ -250,17 +250,15 @@ public struct ContentView: View {
             
         } detail: {
             ScrollView {
-                GlassEffectContainer {
-                    VStack(spacing: 20) {
-                        if selectedTab == "Dashboard" { dashboardView }
-                        else if selectedTab == "Processes" { processesView }
-                        else if selectedTab == "CPU" { cpuDetailsView }
-                        else if selectedTab == "GPU" { gpuDetailsView }
-                        else if selectedTab == "Memory" { memoryDetailsView }
-                        else if selectedTab == "Disk" { diskDetailsView }
-                        else if selectedTab == "Network" { networkDetailsView }
-                    }.padding(24)
-                }
+                VStack(spacing: 20) {
+                    if selectedTab == "Dashboard" { dashboardView }
+                    else if selectedTab == "Processes" { processesView }
+                    else if selectedTab == "CPU" { cpuDetailsView }
+                    else if selectedTab == "GPU" { gpuDetailsView }
+                    else if selectedTab == "Memory" { memoryDetailsView }
+                    else if selectedTab == "Disk" { diskDetailsView }
+                    else if selectedTab == "Network" { networkDetailsView }
+                }.padding(24)
             }
             .background(VisualEffectView(material: .windowBackground, blendingMode: .behindWindow).ignoresSafeArea())
             .navigationTitle(selectedTab ?? "Resource Tracker")
