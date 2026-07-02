@@ -20,11 +20,9 @@ struct Theme {
 // MARK: - Glass Style Modifier
 extension View {
     func glassCardStyle() -> some View {
-        GlassEffectContainer {
-            self
-                .padding(14)
-        }
-        .glassEffect()
+        self
+            .padding(14)
+            .glassEffect()
     }
 }
 
@@ -201,7 +199,6 @@ struct SmoothLiveChart: View {
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
         .chartYScale(domain: 0...limit)
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: data.map { $0.value })
     }
 }
 
@@ -253,15 +250,17 @@ public struct ContentView: View {
             
         } detail: {
             ScrollView {
-                VStack(spacing: 20) {
-                    if selectedTab == "Dashboard" { dashboardView }
-                    else if selectedTab == "Processes" { processesView }
-                    else if selectedTab == "CPU" { cpuDetailsView }
-                    else if selectedTab == "GPU" { gpuDetailsView }
-                    else if selectedTab == "Memory" { memoryDetailsView }
-                    else if selectedTab == "Disk" { diskDetailsView }
-                    else if selectedTab == "Network" { networkDetailsView }
-                }.padding(24)
+                GlassEffectContainer {
+                    VStack(spacing: 20) {
+                        if selectedTab == "Dashboard" { dashboardView }
+                        else if selectedTab == "Processes" { processesView }
+                        else if selectedTab == "CPU" { cpuDetailsView }
+                        else if selectedTab == "GPU" { gpuDetailsView }
+                        else if selectedTab == "Memory" { memoryDetailsView }
+                        else if selectedTab == "Disk" { diskDetailsView }
+                        else if selectedTab == "Network" { networkDetailsView }
+                    }.padding(24)
+                }
             }
             .background(VisualEffectView(material: .windowBackground, blendingMode: .behindWindow).ignoresSafeArea())
             .navigationTitle(selectedTab ?? "Resource Tracker")
