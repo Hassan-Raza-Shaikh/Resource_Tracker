@@ -22,7 +22,7 @@ extension View {
     func glassCardStyle() -> some View {
         self
             .padding(14)
-            .glassEffect()
+            .glassEffect(.regular, in: .rect(cornerRadius: 14))
     }
 }
 

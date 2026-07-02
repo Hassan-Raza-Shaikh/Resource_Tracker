@@ -78,7 +78,7 @@ struct MenuWidgetView: View {
             }
             .padding(16)
         }
-        .glassEffect()
+        .glassEffect(.regular, in: .rect(cornerRadius: 12))
         .frame(width: 250)
     }
 }
@@ -102,7 +102,7 @@ struct MiniHUDView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }
-        .glassEffect()
+        .glassEffect(.regular, in: .rect(cornerRadius: 12))
         .frame(width: 120, height: 40)
         // Make it float and draggable
         .background(WindowAccessor { window in
