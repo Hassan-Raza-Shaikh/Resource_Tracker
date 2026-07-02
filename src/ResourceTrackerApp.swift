@@ -78,7 +78,8 @@ struct MenuWidgetView: View {
             }
             .padding(16)
         }
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .glassEffect(.regular, in: .rect(cornerRadius: 16))
+        .presentationBackground(.clear)
         .frame(width: 250)
     }
 }
@@ -89,7 +90,7 @@ struct MiniHUDView: View {
     
     var body: some View {
         GlassEffectContainer {
-            HStack(spacing: 12) {
+            HStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("CPU").font(.system(size: 9)).foregroundColor(.secondary)
                     Text(String(format: "%.0f%%", vm.displayCpu)).font(.system(size: 12, design: .rounded)).bold().foregroundColor(Theme.statusColor(pressure: vm.displayCpu))
@@ -99,11 +100,12 @@ struct MiniHUDView: View {
                     Text(String(format: "%.0f%%", vm.displayMemPressure)).font(.system(size: 12, design: .rounded)).bold().foregroundColor(Theme.statusColor(pressure: vm.displayMemPressure))
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 16)
             .padding(.vertical, 8)
         }
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
-        .frame(width: 120, height: 40)
+        .glassEffect(.regular, in: .capsule)
+        .presentationBackground(.clear)
+        .frame(width: 130, height: 40)
         // Make it float and draggable
         .background(WindowAccessor { window in
             window.level = .floating // Always on top
