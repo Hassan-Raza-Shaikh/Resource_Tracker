@@ -87,7 +87,7 @@ class MonitorViewModel: ObservableObject {
             cpuHistory.append(pt); gpuHistory.append(pt)
             netDownloadHistory.append(pt); diskReadHistory.append(pt)
         }
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in self?.updateStats() }
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in self?.updateStats() }
         updateStats()
     }
 
@@ -108,8 +108,7 @@ class MonitorViewModel: ObservableObject {
         let gpu = self.gpuMonitor.getGPUUtilization()
         let thermal = Foundation.ProcessInfo.processInfo.thermalState
 
-        tickCount += 1
-        let shouldUpdateText = (tickCount % 10 == 1)
+        let shouldUpdateText = true
 
         var mib = [CTL_KERN, KERN_BOOTTIME]
         var size = MemoryLayout<timeval>.stride

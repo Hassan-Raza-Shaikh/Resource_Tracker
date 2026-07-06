@@ -3,6 +3,7 @@ import IOKit
 
 public class GPUMonitor: ObservableObject {
     @Published public var utilization: Double = 0.0
+    private var lastCheckTime = Date(timeIntervalSince1970: 0)
     
     public init() {}
     
@@ -10,6 +11,13 @@ public class GPUMonitor: ObservableObject {
     public func stop() {} // No longer needed
     
     public func getGPUUtilization() -> Double {
+        let now = Date()
+        let timeInterval = now.timeIntervalSince(lastCheckTime)
+        
+        if timeInterval < 1.0 {
+            return utilization
+        }
+        
         let matchDict = IOServiceMatching("IOAccelerator")
         var iterator: io_iterator_t = 0
         
@@ -41,7 +49,7 @@ public class GPUMonitor: ObservableObject {
         }
         
         IOObjectRelease(iterator)
-        
+        lastCheckTime = now
         return utilization
     }
 }
