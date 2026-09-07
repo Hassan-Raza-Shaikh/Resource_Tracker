@@ -32,9 +32,10 @@ struct proc_taskinfo {
     var pti_priority: Int32
 }
 
-public struct ProcessInfo: Identifiable {
-    public let id = UUID()
-    public let pid: Int32
+// Named ProcessEntry (not ProcessInfo) to avoid colliding with Foundation.ProcessInfo.
+public struct ProcessEntry: Identifiable {
+    public let id: Int32
+    public var pid: Int32 { id }
     public let name: String
     public let memoryBytes: UInt64
     public let cpuPercent: Double
@@ -42,18 +43,22 @@ public struct ProcessInfo: Identifiable {
 }
 
 public class ProcessMonitor: ObservableObject {
-    @Published public var topProcesses: [ProcessInfo] = []
-    
+    @Published public var topProcesses: [ProcessEntry] = []
+
     private var updateTimer: Timer?
     private var previousTicks: [Int32: UInt64] = [:]
     private var smoothedCpu: [Int32: Double] = [:]
     private var lastUpdateTime: Date = Date()
     private var isGhostMode = true // Start paused
-    
+    private var isSampling = false // Guards against overlapping background samples
+
+    // Heavy PID enumeration + icon lookups run here, off the main thread.
+    private let sampleQueue = DispatchQueue(label: "com.hassan.ResourceTracker.process-sampler", qos: .utility)
+
     // Use NSCache for icons so the OS can automatically purge them if memory gets low,
     // avoiding the massive memory spikes caused by manually removing all and reloading.
     private var iconCache = NSCache<NSString, NSImage>()
-    
+
     public init() {}
     
     public func start() {
@@ -83,10 +88,21 @@ public class ProcessMonitor: ObservableObject {
     }
     
     private func updateStats() {
+        // Dispatch the heavy PID walk to a utility queue so the UI never hitches.
+        // Skip this tick if the previous sample is still running.
+        guard !isSampling else { return }
+        isSampling = true
+        sampleQueue.async { [weak self] in
+            self?.sample()
+            DispatchQueue.main.async { self?.isSampling = false }
+        }
+    }
+
+    private func sample() {
         let now = Date()
         let timeElapsed = now.timeIntervalSince(lastUpdateTime)
         lastUpdateTime = now
-        
+
         let PROC_ALL_PIDS: UInt32 = 1
         let PROC_PIDTASKINFO: Int32 = 4
         
@@ -96,7 +112,7 @@ public class ProcessMonitor: ObservableObject {
         
         _ = proc_listpids(PROC_ALL_PIDS, 0, &pids, Int32(size))
         
-        var processList: [ProcessInfo] = []
+        var processList: [ProcessEntry] = []
         var currentTicks: [Int32: UInt64] = [:]
         var currentSmoothed: [Int32: Double] = [:]
         
@@ -130,8 +146,8 @@ public class ProcessMonitor: ObservableObject {
                 currentSmoothed[pid] = newSmoothed
                 
                 // Do NOT fetch icon here. It wastes memory. We will fetch later for top 50 only.
-                processList.append(ProcessInfo(
-                    pid: pid,
+                processList.append(ProcessEntry(
+                    id: pid,
                     name: name,
                     memoryBytes: taskInfo.pti_resident_size,
                     cpuPercent: max(0, newSmoothed), // Display the stable smoothed value
@@ -153,10 +169,10 @@ public class ProcessMonitor: ObservableObject {
         for i in 0..<top50.count {
             let name = top50[i].name
             if let cached = iconCache.object(forKey: name as NSString) {
-                top50[i] = ProcessInfo(pid: top50[i].pid, name: name, memoryBytes: top50[i].memoryBytes, cpuPercent: top50[i].cpuPercent, icon: cached)
+                top50[i] = ProcessEntry(id: top50[i].pid, name: name, memoryBytes: top50[i].memoryBytes, cpuPercent: top50[i].cpuPercent, icon: cached)
             } else if let newIcon = NSRunningApplication(processIdentifier: top50[i].pid)?.icon {
                 iconCache.setObject(newIcon, forKey: name as NSString)
-                top50[i] = ProcessInfo(pid: top50[i].pid, name: name, memoryBytes: top50[i].memoryBytes, cpuPercent: top50[i].cpuPercent, icon: newIcon)
+                top50[i] = ProcessEntry(id: top50[i].pid, name: name, memoryBytes: top50[i].memoryBytes, cpuPercent: top50[i].cpuPercent, icon: newIcon)
             }
         }
         
@@ -165,11 +181,12 @@ public class ProcessMonitor: ObservableObject {
         }
     }
     
+    /// Ask a process to quit. Sends SIGTERM (catchable, lets the app save and
+    /// exit cleanly) rather than SIGKILL, which cannot be trapped and risks data loss.
     public func killProcess(pid: Int32) {
-        // Send SIGKILL (9) to the process
-        kill(pid, SIGKILL)
-        
-        // Optimistically remove it from the list for immediate UI feedback
+        kill(pid, SIGTERM)
+
+        // Optimistically remove it from the list for immediate UI feedback.
         DispatchQueue.main.async {
             self.topProcesses.removeAll { $0.pid == pid }
         }

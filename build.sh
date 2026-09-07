@@ -9,7 +9,8 @@ mkdir -p build/"Resource Tracker.app"/Contents/MacOS
 mkdir -p build/"Resource Tracker.app"/Contents/Resources
 
 # 2. Check and copy icon source
-ICON_SOURCE="/Users/hassan/.gemini/antigravity/brain/2ea441ab-d501-4b99-a366-9d8af455094c/resource_tracker_icon_1782742120120.jpg"
+# Prefer the committed, repo-local icon so the build is reproducible on any machine.
+ICON_SOURCE="assets/app_icon.jpg"
 if [ -f "$ICON_SOURCE" ]; then
     echo "Copying app icon base image..."
     cp "$ICON_SOURCE" build/app_icon_base.jpg

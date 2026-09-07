@@ -40,10 +40,10 @@ struct MenuWidgetView: View {
                     
                     VStack(alignment: .leading) {
                         Text("Memory").font(.caption).foregroundColor(.secondary)
-                        Text(String(format: "%.1f%%", vm.displayMemPressure))
+                        Text(String(format: "%.1f%%", vm.displayMemUsage))
                             .font(.system(.body, design: .rounded))
                             .bold()
-                            .foregroundColor(Theme.statusColor(pressure: vm.displayMemPressure))
+                            .foregroundColor(Theme.statusColor(pressure: vm.displayMemUsage))
                     }
                     
                     VStack(alignment: .leading) {
@@ -59,9 +59,7 @@ struct MenuWidgetView: View {
                 
                 HStack {
                     Button("Settings") {
-                        if #available(macOS 14.0, *) {
-                            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                        }
+                        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                     }
                     .buttonStyle(.plain)
                     .font(.caption)
@@ -97,7 +95,7 @@ struct MiniHUDView: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("MEM").font(.system(size: 9)).foregroundColor(.secondary)
-                    Text(String(format: "%.0f%%", vm.displayMemPressure)).font(.system(size: 12, design: .rounded)).bold().foregroundColor(Theme.statusColor(pressure: vm.displayMemPressure))
+                    Text(String(format: "%.0f%%", vm.displayMemUsage)).font(.system(size: 12, design: .rounded)).bold().foregroundColor(Theme.statusColor(pressure: vm.displayMemUsage))
                 }
             }
             .padding(.horizontal, 16)

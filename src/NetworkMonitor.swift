@@ -33,7 +33,12 @@ public class NetworkMonitor {
             defer { pointer = pointer?.pointee.ifa_next }
             
             guard let interface = pointer?.pointee else { continue }
-            
+
+            // Skip loopback (lo0): localhost traffic would otherwise inflate the
+            // real inbound/outbound numbers a user cares about.
+            let name = String(cString: interface.ifa_name)
+            if name.hasPrefix("lo") { continue }
+
             if interface.ifa_addr.pointee.sa_family == UInt8(AF_LINK) {
                 if let data = interface.ifa_data {
                     let networkData = data.assumingMemoryBound(to: if_data.self)

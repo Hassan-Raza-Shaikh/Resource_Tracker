@@ -53,7 +53,9 @@ class MonitorViewModel: ObservableObject {
     public let processMonitor = ProcessMonitor()
 
     private var timer: Timer?
-    private var tickCount = 0
+
+    // Boot time is constant for the life of the process — read it once.
+    private let bootDate: Date = MonitorViewModel.systemBootDate()
 
     @Published var cpuCoreUsages: [Double] = []
     @Published var overallCpu: Double = 0.0
@@ -62,7 +64,7 @@ class MonitorViewModel: ObservableObject {
 
     @Published var displayCpu: Double = 0.0
     @Published var displayGpu: Double = 0.0
-    @Published var displayMemPressure: Double = 0.0
+    @Published var displayMemUsage: Double = 0.0
     @Published var displayNetInRate: Double = 0.0
     @Published var displayNetOutRate: Double = 0.0
     @Published var displayDiskReadRate: Double = 0.0
@@ -80,7 +82,6 @@ class MonitorViewModel: ObservableObject {
     @Published var diskReadHistory: [ChartDataPoint] = []
 
     init() {
-        gpuMonitor.start()
         let now = Date()
         for i in 0..<30 {
             let pt = ChartDataPoint(time: now.addingTimeInterval(Double(i - 30)), value: 0.0)
@@ -93,8 +94,18 @@ class MonitorViewModel: ObservableObject {
 
     deinit {
         timer?.invalidate()
-        gpuMonitor.stop()
         processMonitor.stop()
+    }
+
+    /// Kernel boot time via sysctl. Read once; it does not change while running.
+    private static func systemBootDate() -> Date {
+        var mib = [CTL_KERN, KERN_BOOTTIME]
+        var bootTime = timeval()
+        var size = MemoryLayout<timeval>.stride
+        if sysctl(&mib, 2, &bootTime, &size, nil, 0) == 0, bootTime.tv_sec != 0 {
+            return Date(timeIntervalSince1970: Double(bootTime.tv_sec))
+        }
+        return Date()
     }
 
     private func updateStats() {
@@ -108,27 +119,21 @@ class MonitorViewModel: ObservableObject {
         let gpu = self.gpuMonitor.getGPUUtilization()
         let thermal = Foundation.ProcessInfo.processInfo.thermalState
 
-        let shouldUpdateText = true
-
-        var mib = [CTL_KERN, KERN_BOOTTIME]
-        var size = MemoryLayout<timeval>.stride
-        var bootTime = timeval()
-        sysctl(&mib, 2, &bootTime, &size, nil, 0)
-        let uptimeSec = Date().timeIntervalSince1970 - Double(bootTime.tv_sec)
+        let uptimeSec = max(0, now.timeIntervalSince(bootDate))
         let days = Int(uptimeSec) / 86400
         let hours = (Int(uptimeSec) % 86400) / 3600
         let mins = (Int(uptimeSec) % 3600) / 60
 
-        let memPress = mem?.pressurePercentage ?? 0.0
+        let memUsage = mem?.usedPercentage ?? 0.0
 
         var status = "Cruising smoothly."
         if thermal == .critical {
             status = "CRITICAL: Your Mac is dangerously hot and heavily throttling."
         } else if thermal == .serious {
             status = "WARNING: Your Mac is overheating and slowing down to cool off."
-        } else if memPress > 85 || avgCpu > 85 {
+        } else if memUsage > 85 || avgCpu > 85 {
             status = "Your Mac is breaking a sweat. Consider closing some heavy apps."
-        } else if memPress > 65 || avgCpu > 65 {
+        } else if memUsage > 65 || avgCpu > 65 {
             status = "Working hard right now."
         }
 
@@ -142,20 +147,18 @@ class MonitorViewModel: ObservableObject {
         self.netDownloadHistory.removeFirst(); self.netDownloadHistory.append(ChartDataPoint(time: now, value: inRate))
         self.diskReadHistory.removeFirst(); self.diskReadHistory.append(ChartDataPoint(time: now, value: readRate))
 
-        if shouldUpdateText {
-            self.displayCpuCoreUsages = cores
-            self.displayCpu = avgCpu
-            self.displayGpu = gpu
-            self.displayMemPressure = memPress
-            self.displayNetInRate = inRate
-            self.displayNetOutRate = outRate
-            self.displayDiskReadRate = readRate
-            self.displayDiskWriteRate = writeRate
-            self.displayThermalState = thermal
-            if let space = diskInfo { self.diskSpace = space }
-            self.uptimeString = "\(days)d \(hours)h \(mins)m"
-            self.systemStatusText = status
-        }
+        self.displayCpuCoreUsages = cores
+        self.displayCpu = avgCpu
+        self.displayGpu = gpu
+        self.displayMemUsage = memUsage
+        self.displayNetInRate = inRate
+        self.displayNetOutRate = outRate
+        self.displayDiskReadRate = readRate
+        self.displayDiskWriteRate = writeRate
+        self.displayThermalState = thermal
+        if let space = diskInfo { self.diskSpace = space }
+        self.uptimeString = "\(days)d \(hours)h \(mins)m"
+        self.systemStatusText = status
     }
 }
 
@@ -198,7 +201,7 @@ struct GlassRingGauge: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.white.opacity(0.08), lineWidth: 14)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 14)
             Circle()
                 .trim(from: 0, to: CGFloat(min(value / 100.0, 1.0)))
                 .stroke(
@@ -241,7 +244,7 @@ struct ActivityGaugeRow: View {
                 .foregroundColor(color)
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color.white.opacity(0.08))
+                    Capsule().fill(Color.primary.opacity(0.08))
                     Capsule()
                         .fill(LinearGradient(colors: [color.opacity(0.6), color], startPoint: .leading, endPoint: .trailing))
                         .frame(width: max(geo.size.width * CGFloat(min(fraction, 1.0)), 4))
@@ -295,10 +298,49 @@ struct StatCard: View {
     }
 }
 
+// MARK: - Navigation Tabs
+enum Tab: String, CaseIterable, Identifiable {
+    case dashboard, processes, cpu, gpu, memory, disk, network
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .dashboard: return "Dashboard"
+        case .processes: return "Processes"
+        case .cpu: return "CPU"
+        case .gpu: return "GPU"
+        case .memory: return "Memory"
+        case .disk: return "Disk"
+        case .network: return "Network"
+        }
+    }
+
+    var sidebarLabel: String {
+        switch self {
+        case .processes: return "Top Processes"
+        case .disk: return "Disk I/O"
+        default: return title
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .dashboard: return "square.grid.2x2"
+        case .processes: return "list.bullet.rectangle.portrait"
+        case .cpu: return "cpu"
+        case .gpu: return "display"
+        case .memory: return "memorychip"
+        case .disk: return "internaldrive"
+        case .network: return "wifi"
+        }
+    }
+}
+
 // MARK: - Main Content View
 public struct ContentView: View {
     @EnvironmentObject var vm: MonitorViewModel
-    @State private var selectedTab: String? = "Dashboard"
+    @State private var selectedTab: Tab? = .dashboard
+    @State private var processToKill: ProcessEntry? = nil
     @AppStorage("showMiniHUD") private var showMiniHUD: Bool = false
     @Environment(\.openWindow) private var openWindow
     @Namespace private var glassNS
@@ -313,34 +355,34 @@ public struct ContentView: View {
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                         self.selectedTab = newValue
                     }
-                    vm.processMonitor.setGhostMode(newValue != "Processes")
+                    vm.processMonitor.setGhostMode(newValue != .processes)
                 }
             )) {
                 Section(header: Text("Overview").foregroundColor(.secondary)) {
-                    NavigationLink(value: "Dashboard") { Label("Dashboard", systemImage: "square.grid.2x2") }
-                    NavigationLink(value: "Processes") { Label("Top Processes", systemImage: "list.bullet.rectangle.portrait") }
+                    NavigationLink(value: Tab.dashboard) { Label(Tab.dashboard.sidebarLabel, systemImage: Tab.dashboard.icon) }
+                    NavigationLink(value: Tab.processes) { Label(Tab.processes.sidebarLabel, systemImage: Tab.processes.icon) }
                 }
                 Section(header: Text("Hardware").foregroundColor(.secondary)) {
-                    NavigationLink(value: "CPU") {
+                    NavigationLink(value: Tab.cpu) {
                         HStack {
-                            Label("CPU", systemImage: "cpu"); Spacer()
+                            Label(Tab.cpu.sidebarLabel, systemImage: Tab.cpu.icon); Spacer()
                             Text(String(format: "%.0f%%", vm.displayCpu)).font(.caption2).padding(.horizontal, 6).padding(.vertical, 2).background(Theme.statusColor(pressure: vm.displayCpu).opacity(0.2)).cornerRadius(8)
                         }
                     }
-                    NavigationLink(value: "GPU") {
+                    NavigationLink(value: Tab.gpu) {
                         HStack {
-                            Label("GPU", systemImage: "display"); Spacer()
+                            Label(Tab.gpu.sidebarLabel, systemImage: Tab.gpu.icon); Spacer()
                             Text(String(format: "%.0f%%", vm.displayGpu)).font(.caption2).padding(.horizontal, 6).padding(.vertical, 2).background(Theme.amethyst.opacity(0.2)).cornerRadius(8)
                         }
                     }
-                    NavigationLink(value: "Memory") {
+                    NavigationLink(value: Tab.memory) {
                         HStack {
-                            Label("Memory", systemImage: "memorychip"); Spacer()
-                            Text(String(format: "%.0f%%", vm.displayMemPressure)).font(.caption2).padding(.horizontal, 6).padding(.vertical, 2).background(Theme.statusColor(pressure: vm.displayMemPressure).opacity(0.2)).cornerRadius(8)
+                            Label(Tab.memory.sidebarLabel, systemImage: Tab.memory.icon); Spacer()
+                            Text(String(format: "%.0f%%", vm.displayMemUsage)).font(.caption2).padding(.horizontal, 6).padding(.vertical, 2).background(Theme.statusColor(pressure: vm.displayMemUsage).opacity(0.2)).cornerRadius(8)
                         }
                     }
-                    NavigationLink(value: "Disk") { Label("Disk I/O", systemImage: "internaldrive") }
-                    NavigationLink(value: "Network") { Label("Network", systemImage: "wifi") }
+                    NavigationLink(value: Tab.disk) { Label(Tab.disk.sidebarLabel, systemImage: Tab.disk.icon) }
+                    NavigationLink(value: Tab.network) { Label(Tab.network.sidebarLabel, systemImage: Tab.network.icon) }
                 }
             }
             .listStyle(.sidebar)
@@ -349,26 +391,36 @@ public struct ContentView: View {
         } detail: {
             ScrollView {
                 VStack(spacing: 20) {
-                    if selectedTab == "Dashboard" {
-                        dashboardView.glassEffectID("dashboard", in: glassNS)
-                    } else if selectedTab == "Processes" {
-                        processesView.glassEffectID("processes", in: glassNS)
-                    } else if selectedTab == "CPU" {
-                        cpuDetailsView.glassEffectID("cpu", in: glassNS)
-                    } else if selectedTab == "GPU" {
-                        gpuDetailsView.glassEffectID("gpu", in: glassNS)
-                    } else if selectedTab == "Memory" {
-                        memoryDetailsView.glassEffectID("memory", in: glassNS)
-                    } else if selectedTab == "Disk" {
-                        diskDetailsView.glassEffectID("disk", in: glassNS)
-                    } else if selectedTab == "Network" {
-                        networkDetailsView.glassEffectID("network", in: glassNS)
+                    switch selectedTab ?? .dashboard {
+                    case .dashboard: dashboardView.glassEffectID(Tab.dashboard.rawValue, in: glassNS)
+                    case .processes: processesView.glassEffectID(Tab.processes.rawValue, in: glassNS)
+                    case .cpu: cpuDetailsView.glassEffectID(Tab.cpu.rawValue, in: glassNS)
+                    case .gpu: gpuDetailsView.glassEffectID(Tab.gpu.rawValue, in: glassNS)
+                    case .memory: memoryDetailsView.glassEffectID(Tab.memory.rawValue, in: glassNS)
+                    case .disk: diskDetailsView.glassEffectID(Tab.disk.rawValue, in: glassNS)
+                    case .network: networkDetailsView.glassEffectID(Tab.network.rawValue, in: glassNS)
                     }
                 }.padding(24)
             }
             .background(VisualEffectView(material: .windowBackground, blendingMode: .behindWindow).ignoresSafeArea())
-            .navigationTitle(selectedTab ?? "Resource Tracker")
+            .navigationTitle(selectedTab?.title ?? "Resource Tracker")
             .navigationSubtitle(Text(vm.systemStatusText))
+            .confirmationDialog(
+                "Quit this process?",
+                isPresented: Binding(
+                    get: { processToKill != nil },
+                    set: { if !$0 { processToKill = nil } }
+                ),
+                presenting: processToKill
+            ) { proc in
+                Button("Quit \(proc.name)", role: .destructive) {
+                    vm.processMonitor.killProcess(pid: proc.pid)
+                    processToKill = nil
+                }
+                Button("Cancel", role: .cancel) { processToKill = nil }
+            } message: { proc in
+                Text("This asks “\(proc.name)” (PID \(proc.pid)) to quit. Any unsaved work in it may be lost.")
+            }
         }
         .frame(minWidth: 900, minHeight: 650)
         .background(WindowAccessor { window in
@@ -445,12 +497,12 @@ public struct ContentView: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Image(systemName: "memorychip").foregroundColor(Theme.statusColor(pressure: vm.displayMemPressure))
+                        Image(systemName: "memorychip").foregroundColor(Theme.statusColor(pressure: vm.displayMemUsage))
                         Text("MEMORY").font(.system(.caption, design: .rounded)).bold().foregroundColor(.secondary)
                         Spacer()
                     }
                     HStack {
-                        GlassRingGauge(value: vm.displayMemPressure, color: Theme.statusColor(pressure: vm.displayMemPressure), label: "Pressure")
+                        GlassRingGauge(value: vm.displayMemUsage, color: Theme.statusColor(pressure: vm.displayMemUsage), label: "Used")
                         Spacer()
                         if let m = vm.memoryInfo {
                             VStack(alignment: .trailing, spacing: 4) {
@@ -500,13 +552,13 @@ public struct ContentView: View {
                             Text("\(process.pid)").frame(width: 50, alignment: .leading).font(.caption.monospacedDigit()).foregroundColor(.secondary)
                             Text(String(format: "%.1f%%", process.cpuPercent)).frame(width: 60, alignment: .trailing).font(.caption.monospacedDigit()).foregroundColor(process.cpuPercent > 50.0 ? .red : .primary)
                             Text(formatBytes(Double(process.memoryBytes))).frame(width: 80, alignment: .trailing).font(.caption.monospacedDigit())
-                            Button(action: { vm.processMonitor.killProcess(pid: process.pid) }) {
+                            Button(action: { processToKill = process }) {
                                 Image(systemName: "xmark.circle.fill").foregroundColor(.red)
                             }
-                            .buttonStyle(TactileButtonStyle()).frame(width: 20).help("Force Quit \(process.name)")
+                            .buttonStyle(TactileButtonStyle()).frame(width: 20).help("Quit \(process.name)")
                         }
                         .padding(.vertical, 4).padding(.horizontal)
-                        .background(Color.white.opacity(0.02)).cornerRadius(6)
+                        .background(Color.primary.opacity(0.02)).cornerRadius(6)
                     }
                 }
             }
@@ -540,14 +592,14 @@ public struct ContentView: View {
                             Text(String(format: "%.1f%%", usage)).font(.system(.title3, design: .rounded)).bold().foregroundColor(Theme.statusColor(pressure: usage))
                             GeometryReader { geometry in
                                 ZStack(alignment: .leading) {
-                                    Capsule().fill(Color.white.opacity(0.08))
+                                    Capsule().fill(Color.primary.opacity(0.08))
                                     Capsule().fill(Theme.statusColor(pressure: usage)).frame(width: geometry.size.width * CGFloat(usage / 100.0)).animation(.spring(response: 0.6, dampingFraction: 0.7), value: usage)
                                 }
                             }.frame(height: 5)
                         }
                         .padding(10)
                         .background(RoundedRectangle(cornerRadius: 10).fill(Theme.statusColor(pressure: usage).opacity(0.04 + (usage / 100.0) * 0.1)))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.05), lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.05), lineWidth: 1))
                     }
                 }
             }.glassCardStyle()
@@ -577,7 +629,7 @@ public struct ContentView: View {
         VStack(spacing: 20) {
             if let m = vm.memoryInfo {
                 HStack(spacing: 32) {
-                    GlassRingGauge(value: vm.displayMemPressure, color: Theme.statusColor(pressure: vm.displayMemPressure), label: "Pressure")
+                    GlassRingGauge(value: vm.displayMemUsage, color: Theme.statusColor(pressure: vm.displayMemUsage), label: "Used")
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Memory Breakdown").font(.headline)
                         breakdownRow(label: "Active Memory", val: m.activeGB, color: Theme.amber)
@@ -612,7 +664,7 @@ public struct ContentView: View {
                     Text("Macintosh HD Capacity").font(.headline)
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            Capsule().fill(Color.white.opacity(0.08))
+                            Capsule().fill(Color.primary.opacity(0.08))
                             Capsule()
                                 .fill(LinearGradient(colors: [Theme.terracotta.opacity(0.7), Theme.terracotta], startPoint: .leading, endPoint: .trailing))
                                 .frame(width: geo.size.width * CGFloat(d.usedGB / d.totalGB))

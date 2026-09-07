@@ -8,7 +8,9 @@ public class MemoryMonitor {
         public let compressedGB: Double
         public let freeGB: Double
         public let usedGB: Double
-        public let pressurePercentage: Double
+        /// Percentage of installed RAM in use (app + wired + compressed).
+        /// This is "Memory Used", not the kernel's memory-pressure signal.
+        public let usedPercentage: Double
     }
     
     private var cachedInfo: MemoryInfo? = nil
@@ -43,8 +45,8 @@ public class MemoryMonitor {
         
         let used = active + wired + compressed
         let total = Double(totalBytes)
-        let pressure = (used / total) * 100.0
-        
+        let usedPct = total > 0 ? (used / total) * 100.0 : 0.0
+
         let gb = 1024.0 * 1024.0 * 1024.0
         let newInfo = MemoryInfo(
             totalGB: total / gb,
@@ -53,7 +55,7 @@ public class MemoryMonitor {
             compressedGB: compressed / gb,
             freeGB: (free + inactive) / gb,
             usedGB: used / gb,
-            pressurePercentage: pressure
+            usedPercentage: usedPct
         )
         cachedInfo = newInfo
         return newInfo

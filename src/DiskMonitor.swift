@@ -91,7 +91,7 @@ public class DiskMonitor {
                 return (totalBytes / gb, freeBytes / gb, usedBytes / gb)
             }
         } catch {
-            print("Error reading disk space: \(error)")
+            // Volume attributes are momentarily unavailable; caller keeps the last value.
         }
         return nil
     }

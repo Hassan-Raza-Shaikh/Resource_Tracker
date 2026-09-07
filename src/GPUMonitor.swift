@@ -1,19 +1,16 @@
 import Foundation
 import IOKit
 
-public class GPUMonitor: ObservableObject {
-    @Published public var utilization: Double = 0.0
+public class GPUMonitor {
+    private var utilization: Double = 0.0
     private var lastCheckTime = Date(timeIntervalSince1970: 0)
-    
+
     public init() {}
-    
-    public func start() {} // No longer needed
-    public func stop() {} // No longer needed
-    
+
     public func getGPUUtilization() -> Double {
         let now = Date()
         let timeInterval = now.timeIntervalSince(lastCheckTime)
-        
+
         if timeInterval < 1.0 {
             return utilization
         }
