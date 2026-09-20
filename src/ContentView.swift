@@ -340,7 +340,6 @@ enum Tab: String, CaseIterable, Identifiable {
 public struct ContentView: View {
     @EnvironmentObject var vm: MonitorViewModel
     @State private var selectedTab: Tab? = .dashboard
-    @State private var processToKill: ProcessEntry? = nil
     @AppStorage("showMiniHUD") private var showMiniHUD: Bool = false
     @Environment(\.openWindow) private var openWindow
     @Namespace private var glassNS
@@ -405,22 +404,6 @@ public struct ContentView: View {
             .background(VisualEffectView(material: .windowBackground, blendingMode: .behindWindow).ignoresSafeArea())
             .navigationTitle(selectedTab?.title ?? "Resource Tracker")
             .navigationSubtitle(Text(vm.systemStatusText))
-            .confirmationDialog(
-                "Quit this process?",
-                isPresented: Binding(
-                    get: { processToKill != nil },
-                    set: { if !$0 { processToKill = nil } }
-                ),
-                presenting: processToKill
-            ) { proc in
-                Button("Quit \(proc.name)", role: .destructive) {
-                    vm.processMonitor.killProcess(pid: proc.pid)
-                    processToKill = nil
-                }
-                Button("Cancel", role: .cancel) { processToKill = nil }
-            } message: { proc in
-                Text("This asks “\(proc.name)” (PID \(proc.pid)) to quit. Any unsaved work in it may be lost.")
-            }
         }
         .frame(minWidth: 900, minHeight: 650)
         .background(WindowAccessor { window in
@@ -552,10 +535,6 @@ public struct ContentView: View {
                             Text("\(process.pid)").frame(width: 50, alignment: .leading).font(.caption.monospacedDigit()).foregroundColor(.secondary)
                             Text(String(format: "%.1f%%", process.cpuPercent)).frame(width: 60, alignment: .trailing).font(.caption.monospacedDigit()).foregroundColor(process.cpuPercent > 50.0 ? .red : .primary)
                             Text(formatBytes(Double(process.memoryBytes))).frame(width: 80, alignment: .trailing).font(.caption.monospacedDigit())
-                            Button(action: { processToKill = process }) {
-                                Image(systemName: "xmark.circle.fill").foregroundColor(.red)
-                            }
-                            .buttonStyle(TactileButtonStyle()).frame(width: 20).help("Quit \(process.name)")
                         }
                         .padding(.vertical, 4).padding(.horizontal)
                         .background(Color.primary.opacity(0.02)).cornerRadius(6)

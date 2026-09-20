@@ -2,9 +2,6 @@ import Foundation
 import AppKit
 import SwiftUI
 
-@_silgen_name("proc_listpids")
-func proc_listpids(_ type: UInt32, _ typeinfo: UInt32, _ buffer: UnsafeMutableRawPointer?, _ buffersize: Int32) -> Int32
-
 @_silgen_name("proc_pidinfo")
 func proc_pidinfo(_ pid: Int32, _ flavor: Int32, _ arg: UInt64, _ buffer: UnsafeMutableRawPointer?, _ buffersize: Int32) -> Int32
 
@@ -103,15 +100,12 @@ public class ProcessMonitor: ObservableObject {
         let timeElapsed = now.timeIntervalSince(lastUpdateTime)
         lastUpdateTime = now
 
-        let PROC_ALL_PIDS: UInt32 = 1
         let PROC_PIDTASKINFO: Int32 = 4
-        
-        let numberOfPids = proc_listpids(PROC_ALL_PIDS, 0, nil, 0)
-        var pids = [Int32](repeating: 0, count: Int(numberOfPids))
-        let size = pids.count * MemoryLayout<Int32>.stride
-        
-        _ = proc_listpids(PROC_ALL_PIDS, 0, &pids, Int32(size))
-        
+
+        // Enumerate PIDs with sysctl(KERN_PROC_ALL). proc_listpids returns nothing
+        // under the App Sandbox, whereas this still lists every process.
+        let pids = ProcessMonitor.allPids()
+
         var processList: [ProcessEntry] = []
         var currentTicks: [Int32: UInt64] = [:]
         var currentSmoothed: [Int32: Double] = [:]
@@ -180,15 +174,15 @@ public class ProcessMonitor: ObservableObject {
             self.topProcesses = top50
         }
     }
-    
-    /// Ask a process to quit. Sends SIGTERM (catchable, lets the app save and
-    /// exit cleanly) rather than SIGKILL, which cannot be trapped and risks data loss.
-    public func killProcess(pid: Int32) {
-        kill(pid, SIGTERM)
 
-        // Optimistically remove it from the list for immediate UI feedback.
-        DispatchQueue.main.async {
-            self.topProcesses.removeAll { $0.pid == pid }
-        }
+    /// All live PIDs via sysctl(KERN_PROC_ALL). Sandbox-safe.
+    private static func allPids() -> [Int32] {
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0]
+        var size = 0
+        guard sysctl(&mib, 4, nil, &size, nil, 0) == 0, size > 0 else { return [] }
+        var procs = [kinfo_proc](repeating: kinfo_proc(), count: size / MemoryLayout<kinfo_proc>.stride)
+        guard sysctl(&mib, 4, &procs, &size, nil, 0) == 0 else { return [] }
+        let count = size / MemoryLayout<kinfo_proc>.stride
+        return procs.prefix(count).map { $0.kp_proc.p_pid }
     }
 }

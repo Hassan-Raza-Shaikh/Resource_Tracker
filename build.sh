@@ -55,7 +55,7 @@ cp Info.plist build/"Resource Tracker.app"/Contents/Info.plist
 echo "Compiling Swift source files..."
 SDK_PATH=$(xcrun --show-sdk-path)
 swiftc -sdk "$SDK_PATH" -target arm64-apple-macos27.0 -O \
-    -o build/"Resource Tracker.app"/Contents/MacOS/ResourceTracker \
+    -o build/"Resource Tracker.app"/Contents/MacOS/"Resource Tracker" \
     src/CPUMonitor.swift \
     src/MemoryMonitor.swift \
     src/NetworkMonitor.swift \
