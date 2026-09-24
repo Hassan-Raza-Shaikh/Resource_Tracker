@@ -546,6 +546,9 @@ struct NetworkView: View {
             HistoryCard(inData: vm.netInHistory, inLabel: "Download", inColor: Theme.ocean,
                         outData: vm.netOutHistory, outLabel: "Upload", outColor: Theme.rose,
                         minimumScale: MonitorViewModel.networkScaleFloor)
+
+            SpeedTestCard()
+            NetworkChecksCard()
         }
     }
 }

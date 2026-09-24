@@ -211,3 +211,125 @@ final class ManagedAtomicFlag: @unchecked Sendable {
     var isSet: Bool { lock.withLock { value } }
     func set() { lock.withLock { value = true } }
 }
+
+@Suite("Speed test maths")
+struct SpeedMathTests {
+    typealias S = SpeedMath.Sample
+
+    @Test func sustainedRateIgnoresRampUp() {
+        // 10 Mbps for 2 s of ramp (1.25 MB/s), then a steady 100 Mbps (12.5 MB/s) for 4 s.
+        var samples: [S] = [S(t: 0, bytes: 0), S(t: 1, bytes: 1_250_000), S(t: 2, bytes: 2_500_000)]
+        for second in 3...6 { samples.append(S(t: Double(second), bytes: 2_500_000 + Int64(second - 2) * 12_500_000)) }
+        #expect(abs(SpeedMath.sustainedMbps(samples, after: 2)! - 100) < 0.001)
+        #expect(SpeedMath.sustainedMbps(samples, after: 6) == nil)   // under a second left: no answer
+    }
+
+    @Test func recentRateUsesTrailingWindow() {
+        let samples = [S(t: 0, bytes: 0), S(t: 1, bytes: 1_000_000), S(t: 2, bytes: 3_000_000)]
+        #expect(abs(SpeedMath.recentMbps(samples, window: 1) - 16) < 0.001)   // last second: 2 MB → 16 Mbps
+    }
+
+    @Test func peakCatchesAShortBurst() {
+        // 50 Mbps for the first 0.6 s, then 5 Mbps: the shape a token-bucket shaper produces.
+        let samples = [S(t: 0, bytes: 0), S(t: 0.6, bytes: 3_750_000), S(t: 1.2, bytes: 4_125_000),
+                       S(t: 1.8, bytes: 4_500_000), S(t: 2.4, bytes: 4_875_000)]
+        #expect(abs(SpeedMath.peakMbps(samples, until: 3, window: 0.6)! - 50) < 0.001)
+        #expect(SpeedTestResult.burst(peak: 50, sustained: 5) == 50)
+        #expect(SpeedTestResult.burst(peak: 11, sustained: 5) == nil)   // under 2.5×: not a burst
+    }
+
+    @Test func deliveriesSpreadEvenlyOverTheirLifetime() {
+        let d = [SpeedMath.Delivery(start: 0, end: 2, bytes: 2_000), SpeedMath.Delivery(start: 1, end: 3, bytes: 1_000)]
+        let s = SpeedMath.samples(from: d, at: [0, 1, 2, 3])
+        #expect(s.map(\.bytes) == [0, 1_000, 2_500, 3_000])
+    }
+
+    @Test func medianAndJitter() {
+        #expect(SpeedMath.median([30, 10, 20]) == 20)
+        #expect(SpeedMath.median([10, 20, 30, 40]) == 25)
+        #expect(SpeedMath.median([]) == nil)
+        #expect(SpeedMath.jitter([10, 14, 12, 12]) == 2)   // |4| + |2| + |0| over 3
+    }
+
+    @Test func serverProcessingTimeIsSubtracted() {
+        // Real headers from speed.cloudflare.com: both entries count; the cfL4 transport stats don't.
+        let header = #"cfSpeedEdge;dur=3, cfSpeedWorker;dur=22, cfL4;desc="?proto=TCP&rtt=24001&min_rtt=23991""#
+        #expect(SpeedMath.serverTimingMs(header) == 25)
+        #expect(SpeedMath.serverTimingMs(nil) == 0)
+    }
+
+    @Test func variabilityDistinguishesSteadyFromFluctuating() {
+        let steady = (0...8).map { S(t: Double($0), bytes: Int64($0) * 1_000_000) }
+        #expect(SpeedTestResult.stability(SpeedMath.variability(steady, after: 0)) == "Steady")
+        var bytes: Int64 = 0
+        let wobbly = (0...8).map { i -> S in bytes += i.isMultiple(of: 2) ? 200_000 : 1_800_000; return S(t: Double(i), bytes: bytes) }
+        #expect(SpeedTestResult.stability(SpeedMath.variability(wobbly, after: 0)) == "Fluctuating")
+    }
+}
+
+@Suite("Speed test results")
+struct SpeedTestResultTests {
+    @Test func bufferbloatGrades() {
+        #expect(BufferbloatGrade(increaseMs: 2) == .aPlus)
+        #expect(BufferbloatGrade(increaseMs: 45) == .b)
+        #expect(BufferbloatGrade(increaseMs: 150) == .c)
+        #expect(BufferbloatGrade(increaseMs: 900) == .f)
+        var r = SpeedTestResult()
+        r.idleLatencyMs = 20; r.loadedLatencyDownMs = 90; r.loadedLatencyUpMs = 40
+        #expect(r.bufferbloat == .c)   // graded on the worse direction: +70 ms
+    }
+
+    @Test func verdictBlamesTheLinkOnlyWhenNearItsLimit() {
+        var r = SpeedTestResult()
+        r.link = link(.ethernet, mbps: 1000)
+        r.downloadMbps = 900
+        #expect(r.verdict?.contains("link itself is the bottleneck") == true)
+        r.downloadMbps = 7
+        #expect(r.verdict?.contains("beyond this Mac") == true)
+    }
+
+    @Test func linkRatesFormat() {
+        #expect(NetworkLink.rate(1000) == "1 Gbps")
+        #expect(NetworkLink.rate(2500) == "2.5 Gbps")
+        #expect(NetworkLink.rate(866) == "866 Mbps")
+        #expect(Format.mbps(6.83) == "6.8 Mbps")
+        #expect(Format.mbps(940) == "940 Mbps")
+        #expect(Format.mbps(1234) == "1.23 Gbps")
+    }
+
+    @Test func truncatedRegistryNamesAreTidied() {
+        #expect(ServerInfo.tidyOrganization("PERN-Pakistan Education & Research Network is an") == "PERN-Pakistan Education & Research Network")
+        #expect(ServerInfo.tidyOrganization("Cloudflare, Inc.") == "Cloudflare, Inc.")
+    }
+
+    private func link(_ kind: NetworkLink.Kind, mbps: Double) -> NetworkLink {
+        NetworkLink(kind: kind, interfaceName: "en0", linkMbps: mbps, isExpensive: false, isConstrained: false, usesVPN: false)
+    }
+}
+
+@Suite("STUN")
+struct STUNTests {
+    let transactionID: [UInt8] = Array(1...12)
+
+    @Test func bindingRequestIsWellFormed() {
+        let request = [UInt8](STUN.bindingRequest(transactionID: transactionID))
+        #expect(request.count == 20)
+        #expect(Array(request[0..<4]) == [0x00, 0x01, 0x00, 0x00])        // Binding Request, no attributes
+        #expect(Array(request[4..<8]) == [0x21, 0x12, 0xA4, 0x42])        // magic cookie
+        #expect(Array(request[8..<20]) == transactionID)
+    }
+
+    @Test func xorMappedAddressDecodes() {
+        // 182.176.222.243 XOR-ed with the magic cookie, as a server would send it.
+        let ip: [UInt8] = [182, 176, 222, 243]
+        let xored = zip(ip, STUN.magicCookie).map { $0 ^ $1 }
+        let attribute: [UInt8] = [0x00, 0x20, 0x00, 0x08, 0x00, 0x01, 0x12, 0x34] + xored
+        let response = Data([0x01, 0x01, 0x00, UInt8(attribute.count)] + STUN.magicCookie + transactionID + attribute)
+        #expect(STUN.mappedAddress(in: response, transactionID: transactionID) == "182.176.222.243")
+    }
+
+    @Test func rejectsSomeoneElsesResponse() {
+        let response = Data([0x01, 0x01, 0x00, 0x00] + STUN.magicCookie + Array(repeating: 9, count: 12))
+        #expect(STUN.mappedAddress(in: response, transactionID: transactionID) == nil)
+    }
+}

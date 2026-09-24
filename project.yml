@@ -22,8 +22,6 @@ targets:
     platform: macOS
     sources:
       - path: src
-        excludes:
-          - "mask_icon.py"
       - path: ResourceTracker/Assets.xcassets
       - path: ResourceTracker/PrivacyInfo.xcprivacy
         buildPhase: resources

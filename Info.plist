@@ -30,6 +30,19 @@
     <string>public.app-category.utilities</string>
     <key>LSMinimumSystemVersion</key>
     <string>26.0</string>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <!-- Apple's captive-portal check is plain HTTP by design: a sign-in page can only be
+             detected on a connection the portal is able to intercept. -->
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>captive.apple.com</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+            </dict>
+        </dict>
+    </dict>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
