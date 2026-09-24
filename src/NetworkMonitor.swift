@@ -1,70 +1,55 @@
 import Foundation
-import SystemConfiguration
 
 public class NetworkMonitor {
-    private var prevBytesIn: UInt64 = 0
-    private var prevBytesOut: UInt64 = 0
-    private var lastCheckTime = Date()
-    
+    /// Per-interface byte counters from the previous sample. The kernel's if_data
+    /// counters are 32-bit and wrap every 4 GB, so deltas are taken per interface
+    /// rather than on a running total (where one wrap would zero the whole tick).
+    private var previous: [String: (rx: UInt32, tx: UInt32)] = [:]
+    private var lastCheckTime: Date?
+
+    /// Interfaces whose traffic is local (loopback) or already counted on a physical
+    /// interface (VPN / IPsec tunnels, gif / stf encapsulation).
+    private static let excludedPrefixes = ["lo", "utun", "ipsec", "gif", "stf"]
+
     public init() {}
-    
-    private var cachedRates: (Double, Double) = (0.0, 0.0)
-    
+
+    /// Bytes/second received and sent since the previous call.
     public func getNetworkRates() -> (bytesInPerSec: Double, bytesOutPerSec: Double) {
+        var head: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&head) == 0 else { return (0, 0) }
+        defer { freeifaddrs(head) }
+
+        var current: [String: (rx: UInt32, tx: UInt32)] = [:]
+        var cursor = head
+        while let entry = cursor?.pointee {
+            cursor = entry.ifa_next
+            guard let addr = entry.ifa_addr, addr.pointee.sa_family == UInt8(AF_LINK),
+                  let data = entry.ifa_data else { continue }
+            let name = String(cString: entry.ifa_name)
+            if NetworkMonitor.excludedPrefixes.contains(where: { name.hasPrefix($0) }) { continue }
+            let stats = data.assumingMemoryBound(to: if_data.self).pointee
+            current[name] = (stats.ifi_ibytes, stats.ifi_obytes)
+        }
+
         let now = Date()
-        let timeInterval = now.timeIntervalSince(lastCheckTime)
-        
-        // OS networking stats generally don't update sub-second.
-        // Return cached rates for high-frequency chart polling to keep graphs smooth.
-        if timeInterval < 1.0 && prevBytesIn != 0 {
-            return cachedRates
-        }
-        
-        var interfaceAddresses: UnsafeMutablePointer<ifaddrs>? = nil
-        guard getifaddrs(&interfaceAddresses) == 0, let firstAddress = interfaceAddresses else {
-            return (0, 0)
-        }
-        
-        var totalBytesIn: UInt64 = 0
-        var totalBytesOut: UInt64 = 0
-        
-        var pointer: UnsafeMutablePointer<ifaddrs>? = firstAddress
-        while pointer != nil {
-            defer { pointer = pointer?.pointee.ifa_next }
-            
-            guard let interface = pointer?.pointee else { continue }
+        defer { previous = current; lastCheckTime = now }
+        guard let last = lastCheckTime else { return (0, 0) }
+        let elapsed = now.timeIntervalSince(last)
+        guard elapsed > 0 else { return (0, 0) }
 
-            // Skip loopback (lo0): localhost traffic would otherwise inflate the
-            // real inbound/outbound numbers a user cares about.
-            let name = String(cString: interface.ifa_name)
-            if name.hasPrefix("lo") { continue }
+        var rx: UInt64 = 0, tx: UInt64 = 0
+        for (name, counters) in current {
+            guard let prev = previous[name] else { continue }  // new interface: no baseline yet
+            rx += NetworkMonitor.delta(counters.rx, prev.rx)
+            tx += NetworkMonitor.delta(counters.tx, prev.tx)
+        }
+        return (Double(rx) / elapsed, Double(tx) / elapsed)
+    }
 
-            if interface.ifa_addr.pointee.sa_family == UInt8(AF_LINK) {
-                if let data = interface.ifa_data {
-                    let networkData = data.assumingMemoryBound(to: if_data.self)
-                    totalBytesIn += UInt64(networkData.pointee.ifi_ibytes)
-                    totalBytesOut += UInt64(networkData.pointee.ifi_obytes)
-                }
-            }
-        }
-        freeifaddrs(interfaceAddresses)
-        
-        lastCheckTime = now
-        
-        if prevBytesIn == 0 && prevBytesOut == 0 {
-            prevBytesIn = totalBytesIn
-            prevBytesOut = totalBytesOut
-            return (0, 0)
-        }
-        
-        let diffIn = totalBytesIn >= prevBytesIn ? totalBytesIn - prevBytesIn : 0
-        let diffOut = totalBytesOut >= prevBytesOut ? totalBytesOut - prevBytesOut : 0
-        
-        prevBytesIn = totalBytesIn
-        prevBytesOut = totalBytesOut
-        
-        guard timeInterval > 0 else { return (0, 0) }
-        cachedRates = (Double(diffIn) / timeInterval, Double(diffOut) / timeInterval)
-        return cachedRates
+    static func delta(_ current: UInt32, _ previous: UInt32) -> UInt64 {
+        if current >= previous { return UInt64(current - previous) }
+        // Went backwards. A genuine 32-bit wrap only happens from near the top of the
+        // range; otherwise the counter was reset (interface bounced), so count from 0.
+        return previous > UInt32.max / 2 ? UInt64(current &- previous) : UInt64(current)
     }
 }

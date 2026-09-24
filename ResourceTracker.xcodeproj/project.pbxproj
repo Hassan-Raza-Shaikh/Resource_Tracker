@@ -7,39 +7,77 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0063150FD603E4DDAEDAE4D2 /* HUDView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 755C234487BE3CCFA270F9EA /* HUDView.swift */; };
+		059D2BCAD3F5AA641B898787 /* MonitorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5441BB58E186F7CDDE3B120B /* MonitorViewModel.swift */; };
 		0DD83EFC0825E830344E8301 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05670556DBF0B65EE435060A /* NetworkMonitor.swift */; };
 		21F237FAE55974F3D17484B5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C87A89DE6FE1B3DD855620A3 /* Assets.xcassets */; };
+		26DEF96C29D5A01A2F815F1B /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3075C82FFF0CDBB1BA707F4 /* MenuBarView.swift */; };
 		304140B418F5D3ACBA93DA0D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B505D2366D01C9485C72F17 /* ContentView.swift */; };
-		41B7084DD081155FC36FE98F /* VisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E9EFF0B844C31B0FD9B85C6 /* VisualEffectView.swift */; };
+		33B9A8232B6ED5934D763429 /* ResourceTrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DC78492F4E65BDFBCF2F332 /* ResourceTrackerTests.swift */; };
+		50FFEAE2B714FCAF02BBE5AA /* AppKitBridges.swift in Sources */ = {isa = PBXBuildFile; fileRef = 890EACB743D014224B2BAAC2 /* AppKitBridges.swift */; };
+		55A239FA24DC9208F88728B7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F903F37A4B45E12B6DA76A2E /* SettingsView.swift */; };
+		8570BBE652BC165AB52350B7 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B12FE73E8BD24B6B3BB2075A /* PrivacyInfo.xcprivacy */; };
 		92C891B2916FD7339410D7BD /* ResourceTrackerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30B2A04F9F6A2C1450188BDC /* ResourceTrackerApp.swift */; };
 		CD04EC7EF4CED70AD9801884 /* MemoryMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEF1140893880F3D9D7BFA00 /* MemoryMonitor.swift */; };
+		D19CBFFBEADA2997FE2BE578 /* SystemInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58241671167E596D06C08081 /* SystemInfo.swift */; };
+		D95E266C5FDD96E8BCF55757 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 287481511224F09599C2AE33 /* Theme.swift */; };
 		E6C6E28A1A55B2063F406277 /* CPUMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEA60FE930C9B20E55B5DD80 /* CPUMonitor.swift */; };
 		EA8CF0415117DFBC4CE87CC7 /* ProcessMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5891396C7E1C9163A1E9EA7 /* ProcessMonitor.swift */; };
+		F20BBE5F89AC33B2EE156068 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0497F1B33F30542A5590181D /* Components.swift */; };
 		F99156F15AEEE6E2205E8506 /* GPUMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 367F35C8A78058964C14B7E7 /* GPUMonitor.swift */; };
 		FBE3E8989D7FA09CFD93C4F6 /* DiskMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECF0655512C7252A90D64A2B /* DiskMonitor.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		A6E270AA4E423721FA37FCE8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 126BCEBDFAE3781AAAB2CB84 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 760D23D854CA8101183D0C4A;
+			remoteInfo = ResourceTracker;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		0497F1B33F30542A5590181D /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		05670556DBF0B65EE435060A /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		0B935556A30059F603E84C46 /* ResourceTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ResourceTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		243DDBF8B1487740A8A0DE6F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		287481511224F09599C2AE33 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		30B2A04F9F6A2C1450188BDC /* ResourceTrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceTrackerApp.swift; sourceTree = "<group>"; };
 		367F35C8A78058964C14B7E7 /* GPUMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUMonitor.swift; sourceTree = "<group>"; };
+		4BAD42AC29A7D82CE5809E5A /* ResourceTrackerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ResourceTrackerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5441BB58E186F7CDDE3B120B /* MonitorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorViewModel.swift; sourceTree = "<group>"; };
+		58241671167E596D06C08081 /* SystemInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemInfo.swift; sourceTree = "<group>"; };
+		755C234487BE3CCFA270F9EA /* HUDView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDView.swift; sourceTree = "<group>"; };
+		7DC78492F4E65BDFBCF2F332 /* ResourceTrackerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceTrackerTests.swift; sourceTree = "<group>"; };
+		890EACB743D014224B2BAAC2 /* AppKitBridges.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKitBridges.swift; sourceTree = "<group>"; };
 		8B505D2366D01C9485C72F17 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		9C599FE65203997348BBC9AA /* ResourceTracker.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ResourceTracker.entitlements; sourceTree = "<group>"; };
-		9E9EFF0B844C31B0FD9B85C6 /* VisualEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualEffectView.swift; sourceTree = "<group>"; };
 		AEA60FE930C9B20E55B5DD80 /* CPUMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUMonitor.swift; sourceTree = "<group>"; };
+		B12FE73E8BD24B6B3BB2075A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		B3075C82FFF0CDBB1BA707F4 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		C5891396C7E1C9163A1E9EA7 /* ProcessMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessMonitor.swift; sourceTree = "<group>"; };
 		C87A89DE6FE1B3DD855620A3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CEF1140893880F3D9D7BFA00 /* MemoryMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryMonitor.swift; sourceTree = "<group>"; };
 		ECF0655512C7252A90D64A2B /* DiskMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskMonitor.swift; sourceTree = "<group>"; };
+		F903F37A4B45E12B6DA76A2E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		2EF8DA7C4A3D93E69DAE6841 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				7DC78492F4E65BDFBCF2F332 /* ResourceTrackerTests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
 		5AE34FD63B9F6DEF727D6451 /* ResourceTracker */ = {
 			isa = PBXGroup;
 			children = (
 				C87A89DE6FE1B3DD855620A3 /* Assets.xcassets */,
+				B12FE73E8BD24B6B3BB2075A /* PrivacyInfo.xcprivacy */,
 				9C599FE65203997348BBC9AA /* ResourceTracker.entitlements */,
 			);
 			path = ResourceTracker;
@@ -49,6 +87,7 @@
 			isa = PBXGroup;
 			children = (
 				0B935556A30059F603E84C46 /* ResourceTracker.app */,
+				4BAD42AC29A7D82CE5809E5A /* ResourceTrackerTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -56,15 +95,22 @@
 		666888BD0FB77C8CB5696C5F /* src */ = {
 			isa = PBXGroup;
 			children = (
+				890EACB743D014224B2BAAC2 /* AppKitBridges.swift */,
+				0497F1B33F30542A5590181D /* Components.swift */,
 				8B505D2366D01C9485C72F17 /* ContentView.swift */,
 				AEA60FE930C9B20E55B5DD80 /* CPUMonitor.swift */,
 				ECF0655512C7252A90D64A2B /* DiskMonitor.swift */,
 				367F35C8A78058964C14B7E7 /* GPUMonitor.swift */,
+				755C234487BE3CCFA270F9EA /* HUDView.swift */,
 				CEF1140893880F3D9D7BFA00 /* MemoryMonitor.swift */,
+				B3075C82FFF0CDBB1BA707F4 /* MenuBarView.swift */,
+				5441BB58E186F7CDDE3B120B /* MonitorViewModel.swift */,
 				05670556DBF0B65EE435060A /* NetworkMonitor.swift */,
 				C5891396C7E1C9163A1E9EA7 /* ProcessMonitor.swift */,
 				30B2A04F9F6A2C1450188BDC /* ResourceTrackerApp.swift */,
-				9E9EFF0B844C31B0FD9B85C6 /* VisualEffectView.swift */,
+				F903F37A4B45E12B6DA76A2E /* SettingsView.swift */,
+				58241671167E596D06C08081 /* SystemInfo.swift */,
+				287481511224F09599C2AE33 /* Theme.swift */,
 			);
 			path = src;
 			sourceTree = "<group>";
@@ -75,6 +121,7 @@
 				243DDBF8B1487740A8A0DE6F /* Info.plist */,
 				5AE34FD63B9F6DEF727D6451 /* ResourceTracker */,
 				666888BD0FB77C8CB5696C5F /* src */,
+				2EF8DA7C4A3D93E69DAE6841 /* Tests */,
 				605A47EBE4054027A862B960 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -99,6 +146,24 @@
 			productName = ResourceTracker;
 			productReference = 0B935556A30059F603E84C46 /* ResourceTracker.app */;
 			productType = "com.apple.product-type.application";
+		};
+		D4ED2D66FF967561952F53F1 /* ResourceTrackerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0617F305CC603CA097A1DF0F /* Build configuration list for PBXNativeTarget "ResourceTrackerTests" */;
+			buildPhases = (
+				900B4726263277A00297D2A2 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4E7BC7A9918269C9F3A6C164 /* PBXTargetDependency */,
+			);
+			name = ResourceTrackerTests;
+			packageProductDependencies = (
+			);
+			productName = ResourceTrackerTests;
+			productReference = 4BAD42AC29A7D82CE5809E5A /* ResourceTrackerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -130,6 +195,7 @@
 			projectRoot = "";
 			targets = (
 				760D23D854CA8101183D0C4A /* ResourceTracker */,
+				D4ED2D66FF967561952F53F1 /* ResourceTrackerTests */,
 			);
 		};
 /* End PBXProject section */
@@ -140,31 +206,73 @@
 			buildActionMask = 2147483647;
 			files = (
 				21F237FAE55974F3D17484B5 /* Assets.xcassets in Resources */,
+				8570BBE652BC165AB52350B7 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		900B4726263277A00297D2A2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				33B9A8232B6ED5934D763429 /* ResourceTrackerTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CA6E5A93C1374CD87EFD9855 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				50FFEAE2B714FCAF02BBE5AA /* AppKitBridges.swift in Sources */,
 				E6C6E28A1A55B2063F406277 /* CPUMonitor.swift in Sources */,
+				F20BBE5F89AC33B2EE156068 /* Components.swift in Sources */,
 				304140B418F5D3ACBA93DA0D /* ContentView.swift in Sources */,
 				FBE3E8989D7FA09CFD93C4F6 /* DiskMonitor.swift in Sources */,
 				F99156F15AEEE6E2205E8506 /* GPUMonitor.swift in Sources */,
+				0063150FD603E4DDAEDAE4D2 /* HUDView.swift in Sources */,
 				CD04EC7EF4CED70AD9801884 /* MemoryMonitor.swift in Sources */,
+				26DEF96C29D5A01A2F815F1B /* MenuBarView.swift in Sources */,
+				059D2BCAD3F5AA641B898787 /* MonitorViewModel.swift in Sources */,
 				0DD83EFC0825E830344E8301 /* NetworkMonitor.swift in Sources */,
 				EA8CF0415117DFBC4CE87CC7 /* ProcessMonitor.swift in Sources */,
 				92C891B2916FD7339410D7BD /* ResourceTrackerApp.swift in Sources */,
-				41B7084DD081155FC36FE98F /* VisualEffectView.swift in Sources */,
+				55A239FA24DC9208F88728B7 /* SettingsView.swift in Sources */,
+				D19CBFFBEADA2997FE2BE578 /* SystemInfo.swift in Sources */,
+				D95E266C5FDD96E8BCF55757 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		4E7BC7A9918269C9F3A6C164 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 760D23D854CA8101183D0C4A /* ResourceTracker */;
+			targetProxy = A6E270AA4E423721FA37FCE8 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		2591F54CFEAB609F6E4B72C3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.hassan.ResourceTrackerTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Resource Tracker.app/Contents/MacOS/Resource Tracker";
+			};
+			name = Release;
+		};
 		30C8A83A8B093E96344C5D09 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -183,6 +291,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hassan.ResourceTracker;
+				PRODUCT_MODULE_NAME = ResourceTracker;
 				PRODUCT_NAME = "Resource Tracker";
 				SDKROOT = macosx;
 			};
@@ -249,6 +358,24 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = minimal;
 				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		6F72AE6FE978695BC80CF79E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.hassan.ResourceTrackerTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Resource Tracker.app/Contents/MacOS/Resource Tracker";
 			};
 			name = Debug;
 		};
@@ -327,6 +454,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hassan.ResourceTracker;
+				PRODUCT_MODULE_NAME = ResourceTracker;
 				PRODUCT_NAME = "Resource Tracker";
 				SDKROOT = macosx;
 			};
@@ -335,6 +463,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		0617F305CC603CA097A1DF0F /* Build configuration list for PBXNativeTarget "ResourceTrackerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6F72AE6FE978695BC80CF79E /* Debug */,
+				2591F54CFEAB609F6E4B72C3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		6BFB43464CDB9A7C4E74E471 /* Build configuration list for PBXNativeTarget "ResourceTracker" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

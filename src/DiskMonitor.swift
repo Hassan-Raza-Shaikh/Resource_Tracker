@@ -2,97 +2,67 @@ import Foundation
 import IOKit
 import IOKit.storage
 
+/// Capacity of the startup volume.
+public struct DiskSpace: Equatable {
+    public let volumeName: String
+    public let totalBytes: Int64
+    /// Matches Finder's "Available": includes purgeable space the system can reclaim.
+    public let availableBytes: Int64
+
+    public var usedBytes: Int64 { max(totalBytes - availableBytes, 0) }
+    public var usedFraction: Double { totalBytes > 0 ? Double(usedBytes) / Double(totalBytes) : 0 }
+}
+
 public class DiskMonitor {
-    private var prevReadBytes: UInt64 = 0
-    private var prevWriteBytes: UInt64 = 0
-    private var lastCheckTime = Date()
-    
+    private var previous: (read: UInt64, write: UInt64)?
+    private var lastCheckTime: Date?
+
     public init() {}
-    
-    private var cachedRates: (Double, Double) = (0.0, 0.0)
-    
+
+    /// Bytes/second read and written across all block-storage devices since the previous call.
     public func getDiskRates() -> (readBytesPerSec: Double, writeBytesPerSec: Double) {
+        let current = DiskMonitor.cumulativeBytes()
         let now = Date()
-        let timeInterval = now.timeIntervalSince(lastCheckTime)
-        
-        if timeInterval < 1.0 && prevReadBytes != 0 {
-            return cachedRates
-        }
-        
-        var readBytes: UInt64 = 0
-        var writeBytes: UInt64 = 0
-        
-        let masterPort = kIOMainPortDefault
-        let matchingDict = IOServiceMatching(kIOMediaClass)
-        
+        defer { previous = current; lastCheckTime = now }
+        guard let prev = previous, let last = lastCheckTime else { return (0, 0) }
+        let elapsed = now.timeIntervalSince(last)
+        guard elapsed > 0 else { return (0, 0) }
+        // Totals only go backwards when a device is ejected; treat that interval as idle.
+        let read = current.read >= prev.read ? current.read - prev.read : 0
+        let write = current.write >= prev.write ? current.write - prev.write : 0
+        return (Double(read) / elapsed, Double(write) / elapsed)
+    }
+
+    public func getDiskSpaceInfo() -> DiskSpace? {
+        let keys: Set<URLResourceKey> = [.volumeNameKey, .volumeTotalCapacityKey, .volumeAvailableCapacityForImportantUsageKey]
+        guard let values = try? URL(fileURLWithPath: "/").resourceValues(forKeys: keys),
+              let total = values.volumeTotalCapacity,
+              let available = values.volumeAvailableCapacityForImportantUsage else { return nil }
+        return DiskSpace(volumeName: values.volumeName ?? "Startup Disk",
+                         totalBytes: Int64(total),
+                         availableBytes: available)
+    }
+
+    /// Lifetime bytes read/written, summed over every IOBlockStorageDriver (what iostat reads).
+    private static func cumulativeBytes() -> (read: UInt64, write: UInt64) {
         var iterator: io_iterator_t = 0
-        let kernResult = IOServiceGetMatchingServices(masterPort, matchingDict, &iterator)
-        
-        if kernResult == KERN_SUCCESS {
-            var drive: io_registry_entry_t = IOIteratorNext(iterator)
-            while drive != 0 {
-                var parent: io_registry_entry_t = 0
-                let parentResult = IORegistryEntryGetParentEntry(drive, kIOServicePlane, &parent)
-                
-                if parentResult == KERN_SUCCESS {
-                    if IOObjectConformsTo(parent, kIOBlockStorageDriverClass) != 0 {
-                        var properties: Unmanaged<CFMutableDictionary>? = nil
-                        let propertiesResult = IORegistryEntryCreateCFProperties(parent, &properties, kCFAllocatorDefault, 0)
-                        
-                        if propertiesResult == KERN_SUCCESS, let propertiesDict = properties?.takeRetainedValue() as? [String: Any] {
-                            if let statistics = propertiesDict[kIOBlockStorageDriverStatisticsKey] as? [String: Any] {
-                                if let reads = statistics[kIOBlockStorageDriverStatisticsBytesReadKey] as? NSNumber {
-                                    readBytes += reads.uint64Value
-                                }
-                                if let writes = statistics[kIOBlockStorageDriverStatisticsBytesWrittenKey] as? NSNumber {
-                                    writeBytes += writes.uint64Value
-                                }
-                            }
-                        }
-                    }
-                    IOObjectRelease(parent)
-                }
-                IOObjectRelease(drive)
-                drive = IOIteratorNext(iterator)
-            }
-            IOObjectRelease(iterator)
-        }
-        
-        lastCheckTime = now
-        
-        if prevReadBytes == 0 && prevWriteBytes == 0 {
-            prevReadBytes = readBytes
-            prevWriteBytes = writeBytes
+        guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching(kIOBlockStorageDriverClass), &iterator) == KERN_SUCCESS else {
             return (0, 0)
         }
-        
-        let diffRead = readBytes >= prevReadBytes ? readBytes - prevReadBytes : 0
-        let diffWrite = writeBytes >= prevWriteBytes ? writeBytes - prevWriteBytes : 0
-        
-        prevReadBytes = readBytes
-        prevWriteBytes = writeBytes
-        
-        guard timeInterval > 0 else { return (0, 0) }
-        cachedRates = (Double(diffRead) / timeInterval, Double(diffWrite) / timeInterval)
-        return cachedRates
-    }
-    
-    public func getDiskSpaceInfo() -> (totalGB: Double, freeGB: Double, usedGB: Double)? {
-        let fileManager = FileManager.default
-        do {
-            let values = try fileManager.attributesOfFileSystem(forPath: "/")
-            if let totalSize = values[.systemSize] as? NSNumber,
-               let freeSize = values[.systemFreeSize] as? NSNumber {
-                let totalBytes = totalSize.doubleValue
-                let freeBytes = freeSize.doubleValue
-                let usedBytes = totalBytes - freeBytes
-                
-                let gb = 1024.0 * 1024.0 * 1024.0
-                return (totalBytes / gb, freeBytes / gb, usedBytes / gb)
+        defer { IOObjectRelease(iterator) }
+
+        var read: UInt64 = 0, write: UInt64 = 0
+        var driver = IOIteratorNext(iterator)
+        while driver != 0 {
+            // Fetch just the Statistics dictionary, not the driver's whole property table.
+            if let stats = IORegistryEntryCreateCFProperty(driver, kIOBlockStorageDriverStatisticsKey as CFString, kCFAllocatorDefault, 0)?
+                .takeRetainedValue() as? [String: Any] {
+                read += (stats[kIOBlockStorageDriverStatisticsBytesReadKey] as? NSNumber)?.uint64Value ?? 0
+                write += (stats[kIOBlockStorageDriverStatisticsBytesWrittenKey] as? NSNumber)?.uint64Value ?? 0
             }
-        } catch {
-            // Volume attributes are momentarily unavailable; caller keeps the last value.
+            IOObjectRelease(driver)
+            driver = IOIteratorNext(iterator)
         }
-        return nil
+        return (read, write)
     }
 }

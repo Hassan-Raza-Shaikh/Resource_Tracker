@@ -56,15 +56,7 @@ echo "Compiling Swift source files..."
 SDK_PATH=$(xcrun --show-sdk-path)
 swiftc -sdk "$SDK_PATH" -target arm64-apple-macos27.0 -O \
     -o build/"Resource Tracker.app"/Contents/MacOS/"Resource Tracker" \
-    src/CPUMonitor.swift \
-    src/MemoryMonitor.swift \
-    src/NetworkMonitor.swift \
-    src/DiskMonitor.swift \
-    src/GPUMonitor.swift \
-    src/ProcessMonitor.swift \
-    src/VisualEffectView.swift \
-    src/ContentView.swift \
-    src/ResourceTrackerApp.swift
+    src/*.swift
 
 echo "=== Build Completed Successfully ==="
 echo "You can run the application using: open build/\"Resource Tracker.app\""

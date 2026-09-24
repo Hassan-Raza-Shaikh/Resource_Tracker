@@ -25,6 +25,8 @@ targets:
         excludes:
           - "mask_icon.py"
       - path: ResourceTracker/Assets.xcassets
+      - path: ResourceTracker/PrivacyInfo.xcprivacy
+        buildPhase: resources
       - path: ResourceTracker/ResourceTracker.entitlements
         buildPhase: none
       - path: Info.plist
@@ -32,6 +34,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: Resource Tracker
+        PRODUCT_MODULE_NAME: ResourceTracker
         PRODUCT_BUNDLE_IDENTIFIER: com.hassan.ResourceTracker
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
@@ -55,11 +58,31 @@ targets:
         COMBINE_HIDPI_IMAGES: "YES"
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
 
+  ResourceTrackerTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: ResourceTracker
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+        PRODUCT_BUNDLE_IDENTIFIER: com.hassan.ResourceTrackerTests
+        # The product name has a space, which xcodegen's derived TEST_HOST doesn't account for.
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Resource Tracker.app/Contents/MacOS/Resource Tracker"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        SWIFT_VERSION: "6.0"
+
 schemes:
   ResourceTracker:
     build:
       targets:
         ResourceTracker: all
+    test:
+      config: Debug
+      targets:
+        - ResourceTrackerTests
     run:
       config: Debug
     archive:
